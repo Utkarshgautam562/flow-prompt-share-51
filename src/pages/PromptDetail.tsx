@@ -1,19 +1,21 @@
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/components/ui/use-toast';
-import { Copy } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { Copy, ArrowLeft, ThumbsUp, Share2, Loader2 } from 'lucide-react';
 
 interface Prompt {
   id: string;
   title: string;
   content: string;
   created_at: string;
+  user_id: string;
   llm_settings: {
     model: string;
     temperature: number;
@@ -25,8 +27,11 @@ interface Prompt {
 
 const PromptDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchPrompt = async () => {
@@ -67,29 +72,55 @@ const PromptDetail = () => {
     if (!prompt) return;
     
     navigator.clipboard.writeText(prompt.content);
+    setCopied(true);
     toast({
       title: "Copied to clipboard",
       description: "The prompt has been copied to your clipboard.",
     });
+    
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
+  };
+
+  const goBack = () => {
+    navigate(-1);
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-[50vh]">Loading prompt...</div>;
+    return (
+      <div className="flex justify-center items-center h-[50vh]">
+        <Loader2 size={32} className="animate-spin text-gray-500" />
+      </div>
+    );
   }
   
   if (!prompt) {
     return (
       <div className="container mx-auto py-12 px-4 text-center">
         <h1 className="text-2xl font-bold mb-4">Prompt Not Found</h1>
-        <p className="text-gray-500">
+        <p className="text-gray-500 mb-6">
           The prompt you're looking for doesn't exist or is not public.
         </p>
+        <Button onClick={goBack} variant="outline">
+          <ArrowLeft size={16} className="mr-2" /> Go Back
+        </Button>
       </div>
     );
   }
 
+  const isOwner = user && user.id === prompt.user_id;
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
+      <Button 
+        variant="ghost" 
+        onClick={goBack} 
+        className="mb-4"
+      >
+        <ArrowLeft size={16} className="mr-2" /> Back
+      </Button>
+      
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
@@ -99,9 +130,24 @@ const PromptDetail = () => {
                 by {prompt.profiles?.username || 'Anonymous'} • {new Date(prompt.created_at).toLocaleDateString()}
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={copyToClipboard}>
-              <Copy size={14} className="mr-1" /> Copy
-            </Button>
+            <div className="flex gap-2">
+              {isOwner && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => navigate(`/my-prompts`)}
+                >
+                  Edit
+                </Button>
+              )}
+              <Button 
+                variant={copied ? "default" : "outline"} 
+                size="sm" 
+                onClick={copyToClipboard}
+              >
+                <Copy size={14} className="mr-1" /> {copied ? 'Copied' : 'Copy'}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         
@@ -123,10 +169,30 @@ const PromptDetail = () => {
               {prompt.content}
             </div>
           </div>
+
+          <div className="pt-4">
+            <h3 className="font-semibold mb-3">How to Use This Prompt</h3>
+            <ol className="list-decimal pl-5 space-y-2">
+              <li>Copy the prompt using the copy button above</li>
+              <li>Paste it into your preferred AI assistant</li>
+              <li>Modify any placeholders with your specific information</li>
+              <li>Run the prompt and get high-quality results</li>
+            </ol>
+          </div>
         </CardContent>
         
-        <CardFooter className="flex justify-between text-sm text-gray-500 pt-6">
-          <div>Length: {prompt.content.length} characters</div>
+        <CardFooter className="flex justify-between items-center border-t pt-6">
+          <div className="text-sm text-gray-500">
+            Length: {prompt.content.length} characters
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm">
+              <ThumbsUp size={16} className="mr-1" /> Useful
+            </Button>
+            <Button variant="ghost" size="sm">
+              <Share2 size={16} className="mr-1" /> Share
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </div>

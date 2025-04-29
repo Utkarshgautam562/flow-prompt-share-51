@@ -9,9 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { toast } from '@/components/ui/use-toast';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { Pencil, Trash2, Plus, Sparkles } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import PromptOptimizer from '@/components/PromptOptimizer';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Prompt {
   id: string;
@@ -30,6 +32,7 @@ const MyPrompts = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('manual');
 
   const fetchPrompts = async () => {
     if (!user) return;
@@ -68,6 +71,7 @@ const MyPrompts = () => {
     setTitle('');
     setContent('');
     setIsPublic(false);
+    setActiveTab('manual');
     setIsDialogOpen(true);
   };
   
@@ -76,6 +80,7 @@ const MyPrompts = () => {
     setTitle(prompt.title);
     setContent(prompt.content);
     setIsPublic(prompt.is_public);
+    setActiveTab('manual');
     setIsDialogOpen(true);
   };
   
@@ -85,6 +90,25 @@ const MyPrompts = () => {
     if (!user) return;
     
     try {
+      // Ensure title and content are not empty
+      if (!title.trim()) {
+        toast({
+          variant: "destructive",
+          title: "Missing title",
+          description: "Please provide a title for your prompt.",
+        });
+        return;
+      }
+
+      if (!content.trim()) {
+        toast({
+          variant: "destructive",
+          title: "Missing content",
+          description: "Please provide content for your prompt.",
+        });
+        return;
+      }
+
       if (currentPrompt?.id) {
         // Update existing prompt
         const { error } = await supabase
@@ -158,6 +182,12 @@ const MyPrompts = () => {
         description: error.message,
       });
     }
+  };
+
+  const handleOptimize = (optimizedContent: string) => {
+    setContent(optimizedContent);
+    // Auto-switch to manual tab after optimization
+    setActiveTab('manual');
   };
 
   return (
@@ -257,17 +287,31 @@ const MyPrompts = () => {
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="content">Prompt Content</Label>
-              <Textarea 
-                id="content" 
-                value={content} 
-                onChange={(e) => setContent(e.target.value)} 
-                placeholder="Write your prompt here..." 
-                className="h-40 resize-none" 
-                required 
-              />
-            </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="manual">Write Manually</TabsTrigger>
+                <TabsTrigger value="optimize">
+                  <Sparkles size={16} className="mr-2" />
+                  AI Optimize
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="manual" className="space-y-2">
+                <Label htmlFor="content">Prompt Content</Label>
+                <Textarea 
+                  id="content" 
+                  value={content} 
+                  onChange={(e) => setContent(e.target.value)} 
+                  placeholder="Write your prompt here..." 
+                  className="h-40 resize-none" 
+                  required 
+                />
+              </TabsContent>
+              
+              <TabsContent value="optimize" className="pt-2">
+                <PromptOptimizer onOptimize={handleOptimize} initialContent={content} />
+              </TabsContent>
+            </Tabs>
             
             <div className="flex items-center space-x-2">
               <Switch 
