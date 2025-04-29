@@ -1,46 +1,133 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Menu, X, User } from "lucide-react";
 
 const Navbar = () => {
+  const { user, profile, signOut } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
-    <header className="sticky top-0 z-30 w-full border-b bg-white">
-      <div className="container flex h-16 items-center px-4 sm:px-6">
-        <div className="flex items-center">
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue rounded-md w-8 h-8"></div>
-            <span className="text-xl font-bold bg-gradient-to-r from-promptflow-purple to-promptflow-blue bg-clip-text text-transparent">
-              PromptFlow
-            </span>
-          </Link>
-        </div>
-        
-        <div className="hidden md:flex items-center ml-8 space-x-4">
-          <Link to="/" className="text-sm font-medium transition-colors hover:text-promptflow-purple">
+    <nav className="bg-white border-b">
+      <div className="container mx-auto px-4 flex items-center justify-between h-16">
+        {/* Logo */}
+        <Link to="/" className="flex items-center space-x-2">
+          <div className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue rounded-md w-8 h-8"></div>
+          <span className="text-xl font-bold">PromptFlow</span>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center space-x-6">
+          <Link to="/explore" className="text-gray-700 hover:text-gray-900">
             Explore
           </Link>
-          <Link to="/" className="text-sm font-medium transition-colors hover:text-promptflow-purple">
-            My Prompts
-          </Link>
-          <Link to="/" className="text-sm font-medium transition-colors hover:text-promptflow-purple">
-            Teams
-          </Link>
+          {user ? (
+            <>
+              <Link to="/my-prompts" className="text-gray-700 hover:text-gray-900">
+                My Prompts
+              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative rounded-full h-8 w-8 p-0">
+                    <User size={18} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5 text-sm font-medium">
+                    {profile?.username || user.email}
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/my-prompts" className="cursor-pointer">My Prompts</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <Link to="/auth">
+              <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
+                Sign In
+              </Button>
+            </Link>
+          )}
         </div>
-        
-        <div className="ml-auto flex items-center space-x-4">
-          <Button variant="outline" size="sm" className="hidden md:flex">
-            <Search className="h-4 w-4 mr-2" />
-            Search Prompts
-          </Button>
-          
-          <Button size="sm" variant="default" className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
-            Sign Up Free
+
+        {/* Mobile Menu Button */}
+        <div className="md:hidden">
+          <Button variant="ghost" onClick={toggleMenu} size="icon">
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </Button>
         </div>
       </div>
-    </header>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-white border-t">
+          <div className="container mx-auto px-4 py-3 space-y-3">
+            <Link 
+              to="/explore" 
+              className="block py-2 text-gray-700 hover:text-gray-900"
+              onClick={toggleMenu}
+            >
+              Explore
+            </Link>
+            {user ? (
+              <>
+                <Link 
+                  to="/my-prompts" 
+                  className="block py-2 text-gray-700 hover:text-gray-900"
+                  onClick={toggleMenu}
+                >
+                  My Prompts
+                </Link>
+                <div className="pt-2 border-t">
+                  <div className="py-2 text-sm text-gray-500">
+                    {profile?.username || user.email}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-center mt-2"
+                    onClick={() => {
+                      handleSignOut();
+                      toggleMenu();
+                    }}
+                  >
+                    Sign Out
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <Link to="/auth" onClick={toggleMenu} className="block w-full">
+                <Button className="w-full bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
+                  Sign In
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+    </nav>
   );
 };
 

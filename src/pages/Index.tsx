@@ -1,10 +1,12 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import SearchBar from '@/components/SearchBar';
 import PromptCard from '@/components/PromptCard';
 import FolderStructure from '@/components/FolderStructure';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Mock data for demonstration
 const featuredPrompts = [
@@ -102,6 +104,8 @@ const folderStructure = [
 ];
 
 const Index = () => {
+  const { user } = useAuth();
+  
   const handleSearch = (query: string) => {
     console.log('Searching for:', query);
     // In a real app, this would trigger a search request
@@ -130,12 +134,24 @@ const Index = () => {
             </div>
             
             <div className="flex gap-4">
-              <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
-                Get Started Free
-              </Button>
-              <Button variant="outline">
-                Explore Prompts
-              </Button>
+              {user ? (
+                <Link to="/my-prompts">
+                  <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
+                    My Prompts
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/auth">
+                  <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
+                    Get Started Free
+                  </Button>
+                </Link>
+              )}
+              <Link to="/explore">
+                <Button variant="outline">
+                  Explore Prompts
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -195,9 +211,19 @@ const Index = () => {
                   <span>Team collaboration with role-based permissions</span>
                 </li>
               </ul>
-              <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
-                Start Organizing
-              </Button>
+              {user ? (
+                <Link to="/my-prompts">
+                  <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
+                    Start Organizing
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/auth">
+                  <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
+                    Start Organizing
+                  </Button>
+                </Link>
+              )}
             </div>
             
             <div className="relative">
@@ -214,7 +240,7 @@ const Index = () => {
       </section>
       
       {/* Footer */}
-      <footer className="bg-white border-t py-12">
+      <footer className="bg-white border-t py-12 mt-auto">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2">
