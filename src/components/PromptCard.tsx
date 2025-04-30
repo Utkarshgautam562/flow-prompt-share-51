@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,9 +53,8 @@ const PromptCard: React.FC<PromptCardProps> = ({
       onCopy(description);
     } else {
       navigator.clipboard.writeText(description);
-      toast({
-        description: "Prompt content has been copied to your clipboard",
-      });
+      // Fix: Use the correct toast format for the Sonner toast library
+      toast("Prompt content has been copied to your clipboard");
     }
   };
 
