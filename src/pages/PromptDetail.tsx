@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
+import { useLikes } from '@/hooks/useLikes';
 import { Copy, ArrowLeft, ThumbsUp, Share2, Loader2 } from 'lucide-react';
 
 interface Prompt {
@@ -32,6 +33,7 @@ const PromptDetail = () => {
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const { likesCount, isLiked, toggleLike } = useLikes(id || '');
 
   useEffect(() => {
     const fetchPrompt = async () => {
@@ -186,8 +188,14 @@ const PromptDetail = () => {
             Length: {prompt.content.length} characters
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm">
-              <ThumbsUp size={16} className="mr-1" /> Useful
+            <Button 
+              variant={isLiked ? "default" : "ghost"} 
+              size="sm"
+              className={isLiked ? "bg-pink-100 text-pink-600 hover:bg-pink-200 hover:text-pink-700" : ""}
+              onClick={toggleLike}
+            >
+              <ThumbsUp size={16} className={`mr-1 ${isLiked ? "fill-current" : ""}`} /> 
+              {isLiked ? 'Liked' : 'Like'} ({likesCount})
             </Button>
             <Button variant="ghost" size="sm">
               <Share2 size={16} className="mr-1" /> Share

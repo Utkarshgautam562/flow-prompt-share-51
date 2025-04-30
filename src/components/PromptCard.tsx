@@ -8,6 +8,8 @@ import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
+import { useLikes } from "@/hooks/useLikes";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PromptCardProps {
   title: string;
@@ -25,12 +27,13 @@ const PromptCard: React.FC<PromptCardProps> = ({
   description,
   llm,
   useCase,
-  upvotes,
   author,
   id,
   onCopy
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { likesCount, isLiked, toggleLike } = useLikes(id);
   const authorInitials = author.substring(0, 2).toUpperCase();
   
   const handleCopy = (e: React.MouseEvent) => {
@@ -44,6 +47,11 @@ const PromptCard: React.FC<PromptCardProps> = ({
         description: "Prompt content has been copied to your clipboard",
       });
     }
+  };
+
+  const handleLike = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleLike();
   };
 
   const handleClick = () => {
@@ -80,11 +88,16 @@ const PromptCard: React.FC<PromptCardProps> = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <ThumbsUp size={12} /> {upvotes}
-                </Badge>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className={`flex items-center gap-1 p-1 h-7 ${isLiked ? 'bg-pink-50 text-pink-600 hover:text-pink-700' : 'hover:bg-gray-100'}`}
+                  onClick={handleLike}
+                >
+                  <ThumbsUp size={12} className={isLiked ? "fill-current" : ""} /> {likesCount}
+                </Button>
               </TooltipTrigger>
-              <TooltipContent>{upvotes} upvotes</TooltipContent>
+              <TooltipContent>{likesCount} {likesCount === 1 ? 'like' : 'likes'}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>

@@ -27,6 +27,7 @@ interface Prompt {
   is_public?: boolean;
   user_id?: string;
   search_vector?: unknown;
+  likes_count?: number;
 }
 
 const USE_CASES = {
@@ -52,9 +53,14 @@ const Explore = () => {
       setIsSearching(true);
       setError(null);
       
+      // Start building query
       let queryBuilder = supabase
         .from('prompts')
-        .select('*, profiles(username)')
+        .select(`
+          *,
+          profiles(username),
+          likes:likes(count)
+        `)
         .eq('is_public', true);
       
       // Apply search query
@@ -78,8 +84,8 @@ const Explore = () => {
       if (filters.sortBy === 'recent') {
         queryBuilder = queryBuilder.order('created_at', { ascending: false });
       } else if (filters.sortBy === 'popular') {
-        // Assuming you have a metric for popularity, like upvotes
-        queryBuilder = queryBuilder.order('upvotes', { ascending: false });
+        // We'll sort by likeCounts after we get the data
+        queryBuilder = queryBuilder.order('created_at', { ascending: false });
       } else {
         // Default sort by recency
         queryBuilder = queryBuilder.order('created_at', { ascending: false });
@@ -94,8 +100,14 @@ const Explore = () => {
         const formattedData: Prompt[] = data.map(item => ({
           ...item,
           profiles: item.profiles as { username: string },
-          llm_settings: item.llm_settings as { model: string; temperature: number }
+          llm_settings: item.llm_settings as { model: string; temperature: number },
+          likes_count: (item.likes as any[])[0]?.count || 0
         }));
+        
+        // Sort by popularity if needed
+        if (filters.sortBy === 'popular') {
+          formattedData.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
+        }
         
         setPrompts(formattedData);
       }
@@ -217,7 +229,7 @@ const Explore = () => {
                   description={prompt.content}
                   llm={prompt.llm_settings?.model || "GPT-4"}
                   useCase={getUseCase(prompt)}
-                  upvotes={Math.floor(Math.random() * 100)} // Mock data, replace with actual upvotes
+                  upvotes={prompt.likes_count || 0}
                   author={prompt.profiles?.username || 'Anonymous'}
                   onCopy={handleCopyPrompt}
                 />
