@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,12 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   
@@ -43,6 +45,12 @@ const Auth = () => {
     // Validate username
     if (!username.trim()) {
       toast.error("Username is required");
+      return;
+    }
+    
+    // Check terms agreement
+    if (!agreedToTerms) {
+      toast.error("You must agree to the Terms and Privacy Policy");
       return;
     }
     
@@ -140,6 +148,29 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)} 
                     required 
                   />
+                </div>
+                <div className="flex items-start space-x-2 mt-4">
+                  <Checkbox 
+                    id="terms" 
+                    className="mt-1"
+                    checked={agreedToTerms}
+                    onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <label
+                      htmlFor="terms"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      I agree to the{" "}
+                      <Link to="/terms" className="text-promptflow-purple hover:underline" target="_blank">
+                        Terms of Service
+                      </Link>{" "}
+                      and{" "}
+                      <Link to="/privacy" className="text-promptflow-purple hover:underline" target="_blank">
+                        Privacy Policy
+                      </Link>
+                    </label>
+                  </div>
                 </div>
                 <Button 
                   type="submit" 

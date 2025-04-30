@@ -196,16 +196,17 @@ const Index = () => {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {featuredPrompts.map((prompt) => (
-                <PromptCard 
-                  key={prompt.id}
-                  id={prompt.id}
-                  title={prompt.title}
-                  description={prompt.description}
-                  llm={prompt.llm}
-                  useCase={prompt.useCase}
-                  upvotes={prompt.upvotes}
-                  author={prompt.author}
-                />
+                <div key={prompt.id} className="pointer-events-none">
+                  <PromptCard 
+                    id={prompt.id}
+                    title={prompt.title}
+                    description={prompt.description}
+                    llm={prompt.llm}
+                    useCase={prompt.useCase}
+                    upvotes={prompt.upvotes}
+                    author={prompt.author}
+                  />
+                </div>
               ))}
             </div>
           </div>
@@ -269,15 +270,25 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-white border-t py-12 mt-auto">
         <div className="container px-4 md:px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <div className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue rounded-md w-8 h-8"></div>
-              <span className="text-xl font-bold">PromptFlow</span>
+          <div className="flex flex-col space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-center">
+              <div className="flex items-center space-x-2">
+                <div className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue rounded-md w-8 h-8"></div>
+                <span className="text-xl font-bold">PromptFlow</span>
+              </div>
+              <div className="mt-6 md:mt-0">
+                <p className="text-gray-500 text-sm">
+                  © 2025 PromptFlow. All rights reserved.
+                </p>
+              </div>
             </div>
-            <div className="mt-6 md:mt-0">
-              <p className="text-gray-500 text-sm">
-                © 2025 PromptFlow. All rights reserved.
-              </p>
+            
+            {/* Legal Links */}
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
+              <Link to="/terms" className="hover:underline">Terms of Service</Link>
+              <Link to="/privacy" className="hover:underline">Privacy Policy</Link>
+              <Link to="/disclaimer" className="hover:underline">Disclaimer</Link>
+              <Link to="/cookie-policy" className="hover:underline">Cookie Policy</Link>
             </div>
           </div>
         </div>
