@@ -62,8 +62,8 @@ const Navbar = () => {
           {/* Logo and Brand */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center">
-              <div className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue rounded-md w-8 h-8 mr-2"></div>
-              <span className="text-xl font-bold">PromptFlow</span>
+              <div className="bg-gradient-to-r from-purple-600 to-blue-500 rounded-md w-8 h-8 mr-2"></div>
+              <span className="text-xl font-bold">PromptNexis</span>
             </Link>
             
             {/* Desktop Navigation */}
@@ -80,7 +80,7 @@ const Navbar = () => {
             {user && (
               <Button 
                 onClick={() => navigate('/create-prompt')}
-                className="hidden md:flex gap-1 bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
+                className="hidden md:flex gap-1 bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90"
               >
                 <Plus size={16} />
                 Create Prompt
@@ -157,7 +157,7 @@ const Navbar = () => {
             ) : (
               <Button 
                 onClick={() => navigate('/auth')}
-                className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
+                className="bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90"
               >
                 Sign in
               </Button>
@@ -190,7 +190,7 @@ const Navbar = () => {
               </Link>
             )}
             {user && (
-              <Link to="/create-prompt" className="flex items-center gap-2 px-3 py-2 text-base font-medium hover:bg-slate-50 rounded-md text-promptflow-purple">
+              <Link to="/create-prompt" className="flex items-center gap-2 px-3 py-2 text-base font-medium hover:bg-slate-50 rounded-md text-purple-600">
                 <Plus size={16} />
                 Create Prompt
               </Link>

@@ -9,7 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { useLikes } from '@/hooks/useLikes';
-import { Copy, ArrowLeft, ThumbsUp, Share2, Loader2 } from 'lucide-react';
+import { Copy, ThumbsUp, Share2, Loader2 } from 'lucide-react';
+import BackButton from '@/components/BackButton';
 
 interface Prompt {
   id: string;
@@ -85,8 +86,34 @@ const PromptDetail = () => {
     }, 2000);
   };
 
-  const goBack = () => {
-    navigate(-1);
+  const sharePrompt = () => {
+    if (!prompt) return;
+    
+    const shareUrl = `${window.location.origin}/prompt/${id}`;
+    
+    // Try to use Web Share API if available
+    if (navigator.share) {
+      navigator.share({
+        title: prompt.title,
+        text: `Check out this prompt: ${prompt.title}`,
+        url: shareUrl,
+      }).catch(err => {
+        console.error('Error sharing:', err);
+        // Fallback to clipboard
+        navigator.clipboard.writeText(shareUrl);
+        toast({
+          title: "Link copied",
+          description: "Share link copied to clipboard!",
+        });
+      });
+    } else {
+      // Fallback to clipboard
+      navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Link copied",
+        description: "Share link copied to clipboard!",
+      });
+    }
   };
 
   if (isLoading) {
@@ -104,9 +131,7 @@ const PromptDetail = () => {
         <p className="text-gray-500 mb-6">
           The prompt you're looking for doesn't exist or is not public.
         </p>
-        <Button onClick={goBack} variant="outline">
-          <ArrowLeft size={16} className="mr-2" /> Go Back
-        </Button>
+        <BackButton />
       </div>
     );
   }
@@ -115,13 +140,7 @@ const PromptDetail = () => {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <Button 
-        variant="ghost" 
-        onClick={goBack} 
-        className="mb-4"
-      >
-        <ArrowLeft size={16} className="mr-2" /> Back
-      </Button>
+      <BackButton className="mb-4" />
       
       <Card>
         <CardHeader>
@@ -137,7 +156,7 @@ const PromptDetail = () => {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => navigate(`/my-prompts`)}
+                  onClick={() => navigate(`/edit-prompt/${id}`)}
                 >
                   Edit
                 </Button>
@@ -197,7 +216,7 @@ const PromptDetail = () => {
               <ThumbsUp size={16} className={`mr-1 ${isLiked ? "fill-current" : ""}`} /> 
               {isLiked ? 'Liked' : 'Like'} ({likesCount})
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={sharePrompt}>
               <Share2 size={16} className="mr-1" /> Share
             </Button>
           </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -7,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
+import BackButton from '@/components/BackButton';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -247,6 +249,9 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
       <Navbar />
       
       <div className="container max-w-3xl px-4 md:px-6 py-8">
+        <div className="mb-4">
+          <BackButton to="/my-prompts" />
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>{isEditing ? 'Edit Prompt' : 'Create a New Prompt'}</CardTitle>

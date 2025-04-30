@@ -139,7 +139,7 @@ const Index = () => {
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center text-center space-y-8">
             <div className="space-y-4 max-w-3xl">
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl bg-gradient-to-r from-promptflow-purple to-promptflow-blue bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">
                 Organize, Optimize, and Deploy AI Prompts
               </h1>
               <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl">
@@ -156,7 +156,7 @@ const Index = () => {
               {user ? (
                 <>
                   <Link to="/my-prompts">
-                    <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
+                    <Button className="bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90">
                       My Prompts
                     </Button>
                   </Link>
@@ -168,7 +168,7 @@ const Index = () => {
                 </>
               ) : (
                 <Link to="/auth">
-                  <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
+                  <Button className="bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90">
                     Get Started Free
                   </Button>
                 </Link>
@@ -241,13 +241,13 @@ const Index = () => {
               </ul>
               {user ? (
                 <Link to="/my-prompts">
-                  <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
+                  <Button className="bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90">
                     Start Organizing
                   </Button>
                 </Link>
               ) : (
                 <Link to="/auth">
-                  <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
+                  <Button className="bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90">
                     Start Organizing
                   </Button>
                 </Link>
@@ -273,12 +273,12 @@ const Index = () => {
           <div className="flex flex-col space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div className="flex items-center space-x-2">
-                <div className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue rounded-md w-8 h-8"></div>
-                <span className="text-xl font-bold">PromptFlow</span>
+                <div className="bg-gradient-to-r from-purple-600 to-blue-500 rounded-md w-8 h-8"></div>
+                <span className="text-xl font-bold">PromptNexis</span>
               </div>
               <div className="mt-6 md:mt-0">
                 <p className="text-gray-500 text-sm">
-                  © 2025 PromptFlow. All rights reserved.
+                  © 2025 PromptNexis. All rights reserved.
                 </p>
               </div>
             </div>

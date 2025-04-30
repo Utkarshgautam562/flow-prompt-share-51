@@ -8,6 +8,7 @@ import PromptCard from '@/components/PromptCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
+import BackButton from '@/components/BackButton';
 
 interface Prompt {
   id: string;
@@ -165,7 +166,10 @@ const Explore = () => {
       <div className="container px-4 md:px-6 py-8">
         <div className="flex flex-col space-y-8">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Explore Prompts</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold tracking-tight">Explore Prompts</h1>
+              <BackButton to="/" />
+            </div>
             <p className="text-gray-500">
               Discover and use public prompts from the community
             </p>

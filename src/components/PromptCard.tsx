@@ -56,7 +56,6 @@ const PromptCard: React.FC<PromptCardProps> = ({
       onCopy(description);
     } else {
       navigator.clipboard.writeText(description);
-      // Fix: Use the correct toast format for the Sonner toast library
       toast("Prompt content has been copied to your clipboard");
     }
   };
@@ -111,7 +110,7 @@ const PromptCard: React.FC<PromptCardProps> = ({
       className="prompt-card h-full transition-all hover:shadow-md cursor-pointer flex flex-col"
       onClick={handleClick}
     >
-      <div className="absolute top-0 right-0 bg-gradient-to-l from-promptflow-blue to-promptflow-purple text-white text-xs px-2 py-1 rounded-bl-md">
+      <div className="absolute top-0 right-0 bg-gradient-to-l from-blue-500 to-purple-500 text-white text-xs px-2 py-1 rounded-bl-md">
         {llm}
       </div>
       
@@ -164,7 +163,7 @@ const PromptCard: React.FC<PromptCardProps> = ({
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-gray-500 hover:text-promptflow-purple p-1 h-7"
+            className="text-gray-500 hover:text-purple-600 p-1 h-7"
             onClick={handleCopy}
           >
             <Copy size={14} />
@@ -172,7 +171,7 @@ const PromptCard: React.FC<PromptCardProps> = ({
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-gray-500 hover:text-promptflow-purple p-1 h-7"
+            className="text-gray-500 hover:text-purple-600 p-1 h-7"
             onClick={handleShare}
           >
             <Share2 size={14} />
