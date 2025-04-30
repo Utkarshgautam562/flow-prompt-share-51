@@ -5,10 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  allowAnonymous?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, isLoading } = useAuth();
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
+  allowAnonymous = false 
+}) => {
+  const { user, isLoading, isAnonymous } = useAuth();
   const location = useLocation();
 
   // Wait for authentication to load
@@ -16,13 +20,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
 
-  // Redirect to login if not authenticated
-  if (!user) {
-    return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
+  // Allow access if user is authenticated or anonymous mode is enabled and allowed
+  if (user || (isAnonymous && allowAnonymous)) {
+    return <>{children}</>;
   }
 
-  // User is authenticated, show the protected content
-  return <>{children}</>;
+  // Redirect to login if not authenticated and not in anonymous mode
+  return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
 };
 
 export default ProtectedRoute;

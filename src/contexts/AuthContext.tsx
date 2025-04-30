@@ -9,9 +9,12 @@ interface AuthContextProps {
   user: User | null;
   profile: any | null;
   isLoading: boolean;
+  isAnonymous: boolean;
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  enableAnonymousMode: () => void;
+  disableAnonymousMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -24,11 +27,23 @@ export const useAuth = () => {
   return context;
 };
 
+// Anonymous user ID storage key
+const ANONYMOUS_ID_KEY = 'promptflow-anonymous-id';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
+
+  // Load anonymous state from localStorage on initial load
+  useEffect(() => {
+    const storedAnonymousId = localStorage.getItem(ANONYMOUS_ID_KEY);
+    if (storedAnonymousId && !user) {
+      setIsAnonymous(true);
+    }
+  }, [user]);
 
   useEffect(() => {
     // First, set up the auth state listener
@@ -41,6 +56,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTimeout(async () => {
             await fetchProfile(currentSession.user.id);
           }, 0);
+          
+          // If we have a real user, we're not in anonymous mode
+          setIsAnonymous(false);
+          localStorage.removeItem(ANONYMOUS_ID_KEY);
         } else {
           setProfile(null);
         }
@@ -54,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (currentSession?.user) {
         fetchProfile(currentSession.user.id);
+        setIsAnonymous(false);
       }
       setIsLoading(false);
     });
@@ -136,6 +156,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      if (isAnonymous) {
+        disableAnonymousMode();
+        return;
+      }
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         throw error;
@@ -153,14 +178,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Enable anonymous mode
+  const enableAnonymousMode = () => {
+    // Generate a random ID for anonymous user
+    const anonymousId = `anon_${Math.random().toString(36).substring(2, 15)}`;
+    localStorage.setItem(ANONYMOUS_ID_KEY, anonymousId);
+    setIsAnonymous(true);
+    
+    toast({
+      title: "Anonymous Mode Enabled",
+      description: "You're now browsing in anonymous mode. Your data won't be linked to your identity.",
+    });
+  };
+
+  // Disable anonymous mode
+  const disableAnonymousMode = () => {
+    localStorage.removeItem(ANONYMOUS_ID_KEY);
+    setIsAnonymous(false);
+    
+    toast({
+      title: "Anonymous Mode Disabled",
+      description: "You've exited anonymous mode.",
+    });
+  };
+
   const value = {
     session,
     user,
     profile,
     isLoading,
+    isAnonymous,
     signUp,
     signIn,
     signOut,
+    enableAnonymousMode,
+    disableAnonymousMode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -30,7 +30,7 @@ const App = () => (
             <Route 
               path="/my-prompts" 
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowAnonymous={true}>
                   <MyPrompts />
                 </ProtectedRoute>
               } 
