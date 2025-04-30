@@ -55,7 +55,6 @@ const PromptCard: React.FC<PromptCardProps> = ({
     } else {
       navigator.clipboard.writeText(description);
       toast({
-        title: "Copied to clipboard",
         description: "Prompt content has been copied to your clipboard",
       });
     }
