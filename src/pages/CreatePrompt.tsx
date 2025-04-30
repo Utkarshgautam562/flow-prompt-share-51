@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -94,10 +93,22 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
               const promptData = storedPrompts.find((p: any) => p.id === id);
               
               if (promptData) {
+                // Extract model from llm_settings safely
+                let modelValue = "GPT-4"; // Default value
+                if (promptData.llm_settings) {
+                  const llmSettings = typeof promptData.llm_settings === 'string' 
+                    ? JSON.parse(promptData.llm_settings) 
+                    : promptData.llm_settings;
+                  
+                  if (llmSettings && typeof llmSettings === 'object' && 'model' in llmSettings) {
+                    modelValue = llmSettings.model || "GPT-4";
+                  }
+                }
+                
                 form.reset({
                   title: promptData.title || "",
                   content: promptData.content || "",
-                  model: promptData.llm_settings?.model || "GPT-4",
+                  model: modelValue,
                   isPublic: promptData.is_public || false,
                 });
                 setSelectedTags(promptData.tags || []);
@@ -117,10 +128,22 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
             if (error) throw error;
             
             if (data) {
+              // Extract model from llm_settings safely
+              let modelValue = "GPT-4"; // Default value
+              if (data.llm_settings) {
+                const llmSettings = typeof data.llm_settings === 'string'
+                  ? JSON.parse(data.llm_settings)
+                  : data.llm_settings;
+                
+                if (llmSettings && typeof llmSettings === 'object' && 'model' in llmSettings) {
+                  modelValue = String(llmSettings.model) || "GPT-4";
+                }
+              }
+              
               form.reset({
                 title: data.title || "",
                 content: data.content || "",
-                model: data.llm_settings?.model || "GPT-4",
+                model: modelValue,
                 isPublic: data.is_public || false,
               });
               // If you have tags stored, set them here
