@@ -23,6 +23,8 @@ import { Badge } from "@/components/ui/badge";
 interface SearchBarProps {
   onSearch?: (query: string, filters: SearchFilters) => void;
   placeholder?: string;
+  initialQuery?: string;
+  initialFilters?: SearchFilters;
 }
 
 export interface SearchFilters {
@@ -36,15 +38,29 @@ const USE_CASES = ["All Use Cases", "Marketing", "Coding", "Data Analysis", "Cre
 
 const SearchBar: React.FC<SearchBarProps> = ({ 
   onSearch = () => {}, 
-  placeholder = "Search prompts by keyword, use case, or LLM..." 
+  placeholder = "Search prompts by keyword, use case, or LLM...",
+  initialQuery = '',
+  initialFilters
 }) => {
-  const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState<SearchFilters>({
+  const [query, setQuery] = useState(initialQuery);
+  const [filters, setFilters] = useState<SearchFilters>(initialFilters || {
     llmModel: "All Models",
     useCase: "All Use Cases",
     sortBy: "relevance"
   });
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  
+  useEffect(() => {
+    // Initialize query from props
+    if (initialQuery) {
+      setQuery(initialQuery);
+    }
+    
+    // Initialize filters from props
+    if (initialFilters) {
+      setFilters(initialFilters);
+    }
+  }, [initialQuery, initialFilters]);
   
   useEffect(() => {
     const newActiveFilters: string[] = [];

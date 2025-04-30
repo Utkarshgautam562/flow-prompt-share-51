@@ -7,10 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { toast } from 'sonner';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -27,8 +29,9 @@ const Auth = () => {
     try {
       await signIn(email, password);
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      toast.error(error.message || "Failed to sign in. Please check your credentials.");
     } finally {
       setIsLoading(false);
     }
@@ -36,12 +39,20 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate username
+    if (!username.trim()) {
+      toast.error("Username is required");
+      return;
+    }
+    
     setIsLoading(true);
     try {
-      await signUp(email, password);
-      // Don't navigate here as they need to verify email
-    } catch (error) {
+      await signUp(email, password, { username });
+      toast.success("Account created successfully. Please check your email for verification.");
+    } catch (error: any) {
       console.error(error);
+      toast.error(error.message || "Failed to create account. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -97,6 +108,17 @@ const Auth = () => {
             </TabsContent>
             <TabsContent value="register">
               <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input 
+                    id="username" 
+                    type="text" 
+                    placeholder="Choose a unique username" 
+                    value={username} 
+                    onChange={(e) => setUsername(e.target.value)} 
+                    required 
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input 

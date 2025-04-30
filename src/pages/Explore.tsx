@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import SearchBar, { SearchFilters } from '@/components/SearchBar';
@@ -25,11 +25,20 @@ interface Prompt {
 
 const Explore = () => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
+  const location = useLocation();
+  
+  // Parse search parameters from URL
+  const queryParams = new URLSearchParams(location.search);
+  const initialQuery = queryParams.get('q') || '';
+  const initialModel = queryParams.get('model') || 'All Models';
+  const initialUseCase = queryParams.get('useCase') || 'All Use Cases';
+  const initialSortBy = queryParams.get('sort') || 'relevance';
+  
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [filters, setFilters] = useState<SearchFilters>({
-    llmModel: 'All Models',
-    useCase: 'All Use Cases',
-    sortBy: 'relevance'
+    llmModel: initialModel,
+    useCase: initialUseCase,
+    sortBy: initialSortBy
   });
 
   // Function to fetch prompts from Supabase
@@ -129,6 +138,15 @@ const Explore = () => {
   const handleSearch = (query: string, searchFilters: SearchFilters) => {
     setSearchQuery(query);
     setFilters(searchFilters);
+    
+    // Update URL with search parameters
+    const params = new URLSearchParams();
+    if (query) params.set('q', query);
+    if (searchFilters.llmModel !== 'All Models') params.set('model', searchFilters.llmModel);
+    if (searchFilters.useCase !== 'All Use Cases') params.set('useCase', searchFilters.useCase);
+    if (searchFilters.sortBy !== 'relevance') params.set('sort', searchFilters.sortBy);
+    
+    navigate(`/explore?${params.toString()}`, { replace: true });
   };
 
   useEffect(() => {
@@ -153,7 +171,12 @@ const Explore = () => {
             </p>
           </div>
           
-          <SearchBar onSearch={handleSearch} placeholder="Search for prompts..." />
+          <SearchBar 
+            onSearch={handleSearch} 
+            placeholder="Search for prompts..."
+            initialQuery={searchQuery}
+            initialFilters={filters}
+          />
           
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

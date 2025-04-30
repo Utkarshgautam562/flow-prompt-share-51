@@ -1,8 +1,8 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
-import SearchBar from '@/components/SearchBar';
+import SearchBar, { SearchFilters } from '@/components/SearchBar';
 import PromptCard from '@/components/PromptCard';
 import FolderStructure from '@/components/FolderStructure';
 import { Button } from '@/components/ui/button';
@@ -105,10 +105,29 @@ const folderStructure = [
 
 const Index = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
-  const handleSearch = (query: string) => {
-    console.log('Searching for:', query);
-    // In a real app, this would trigger a search request
+  const handleSearch = (query: string, searchFilters: SearchFilters) => {
+    // Navigate to the explore page with search parameters
+    const searchParams = new URLSearchParams();
+    
+    if (query) {
+      searchParams.append('q', query);
+    }
+    
+    if (searchFilters.llmModel && searchFilters.llmModel !== 'All Models') {
+      searchParams.append('model', searchFilters.llmModel);
+    }
+    
+    if (searchFilters.useCase && searchFilters.useCase !== 'All Use Cases') {
+      searchParams.append('useCase', searchFilters.useCase);
+    }
+    
+    if (searchFilters.sortBy && searchFilters.sortBy !== 'relevance') {
+      searchParams.append('sort', searchFilters.sortBy);
+    }
+    
+    navigate(`/explore?${searchParams.toString()}`);
   };
 
   return (

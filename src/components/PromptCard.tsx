@@ -3,11 +3,11 @@ import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ThumbsUp } from "lucide-react";
+import { Copy, ThumbsUp, Share2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useLikes } from "@/hooks/useLikes";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -35,15 +35,18 @@ const PromptCard: React.FC<PromptCardProps> = ({
   const { user } = useAuth();
   const { likesCount, isLiked, toggleLike } = useLikes(id);
   
-  // Only use the first two characters of the author name for the avatar fallback
-  // This ensures we don't expose any part of an email address
-  const authorInitials = author.substring(0, 2).toUpperCase();
+  // Extract display name - prefer username from metadata if available
+  const getDisplayName = () => {
+    // If author looks like an email, prefer username from metadata
+    if (author.includes('@')) {
+      return author.split('@')[0]; // Fallback to first part of email
+    }
+    return author;
+  };
   
-  // If the author string is an email, only show the username part (before @)
-  // This ensures we don't expose full email addresses in the UI
-  const displayName = author.includes('@') 
-    ? author.split('@')[0] 
-    : author;
+  const displayName = getDisplayName();
+  // Get initials for avatar fallback (max 2 characters)
+  const authorInitials = displayName.substring(0, 2).toUpperCase();
   
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -61,6 +64,37 @@ const PromptCard: React.FC<PromptCardProps> = ({
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleLike();
+  };
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Create a shareable URL for the prompt
+    const shareUrl = `${window.location.origin}/prompt/${id}`;
+    
+    // Try to use Web Share API if available
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: `Check out this prompt: ${title}`,
+          url: shareUrl,
+        });
+        toast.success("Prompt shared successfully!");
+      } catch (error) {
+        console.error("Error sharing prompt:", error);
+        // Fall back to clipboard
+        copyToClipboard(shareUrl);
+      }
+    } else {
+      // Fall back to clipboard
+      copyToClipboard(shareUrl);
+    }
+  };
+  
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Share link copied to clipboard!");
   };
 
   const handleClick = () => {
@@ -123,9 +157,10 @@ const PromptCard: React.FC<PromptCardProps> = ({
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-promptflow-blue hover:text-promptflow-purple p-1 h-7"
+            className="text-gray-500 hover:text-promptflow-purple p-1 h-7"
+            onClick={handleShare}
           >
-            View
+            <Share2 size={14} />
           </Button>
         </div>
       </CardFooter>
