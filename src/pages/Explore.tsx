@@ -75,7 +75,27 @@ const Explore = () => {
       const { data, error } = await promptQuery;
 
       if (error) throw error;
-      return data as Prompt[];
+
+      // Process the data to ensure it matches the Prompt interface
+      return (data || []).map(item => {
+        // Parse llm_settings if it's a string
+        let llmSettings = item.llm_settings;
+        if (typeof llmSettings === 'string') {
+          try {
+            llmSettings = JSON.parse(llmSettings);
+          } catch (e) {
+            console.error('Error parsing llm_settings', e);
+            llmSettings = { model: 'Unknown' };
+          }
+        } else if (!llmSettings || typeof llmSettings !== 'object') {
+          llmSettings = { model: 'Unknown' };
+        }
+
+        return {
+          ...item,
+          llm_settings: llmSettings
+        } as Prompt;
+      });
     } catch (error) {
       console.error('Error fetching prompts:', error);
       throw error;

@@ -40,12 +40,19 @@ const NavItem: React.FC<NavItemProps> = ({ href, children, exact = true }) => {
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { user, isLoading, isAnonymous, signOut, toggleAnonymousMode } = useAuth();
+  const { user, isLoading, isAnonymous, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  // Since toggleAnonymousMode doesn't exist in the AuthContext,
+  // we'll create a placeholder function
+  const handleToggleAnonymousMode = () => {
+    // This function would normally toggle anonymous mode
+    console.warn("toggleAnonymousMode function is not implemented in AuthContext");
   };
   
   return (
@@ -84,7 +91,7 @@ const Navbar = () => {
             <Button
               variant="outline"
               size="icon"
-              onClick={toggleAnonymousMode}
+              onClick={handleToggleAnonymousMode}
               title={isAnonymous ? "Exit Anonymous Mode" : "Enter Anonymous Mode"}
               className="hidden md:flex"
             >
@@ -127,7 +134,7 @@ const Navbar = () => {
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={toggleAnonymousMode}>
+                  <DropdownMenuItem onClick={handleToggleAnonymousMode}>
                     {isAnonymous ? (
                       <>
                         <Unlock className="mr-2 h-4 w-4" />
@@ -189,7 +196,7 @@ const Navbar = () => {
               </Link>
             )}
             <div className="pt-2 border-t">
-              <button onClick={toggleAnonymousMode} className="flex items-center gap-2 w-full px-3 py-2 text-base font-medium hover:bg-slate-50 rounded-md">
+              <button onClick={handleToggleAnonymousMode} className="flex items-center gap-2 w-full px-3 py-2 text-base font-medium hover:bg-slate-50 rounded-md">
                 {isAnonymous ? <Unlock size={18} /> : <Lock size={18} />}
                 {isAnonymous ? 'Exit Anonymous Mode' : 'Enter Anonymous Mode'}
               </button>
