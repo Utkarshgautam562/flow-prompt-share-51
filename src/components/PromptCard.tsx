@@ -34,7 +34,16 @@ const PromptCard: React.FC<PromptCardProps> = ({
   const navigate = useNavigate();
   const { user } = useAuth();
   const { likesCount, isLiked, toggleLike } = useLikes(id);
+  
+  // Only use the first two characters of the author name for the avatar fallback
+  // This ensures we don't expose any part of an email address
   const authorInitials = author.substring(0, 2).toUpperCase();
+  
+  // If the author string is an email, only show the username part (before @)
+  // This ensures we don't expose full email addresses in the UI
+  const displayName = author.includes('@') 
+    ? author.split('@')[0] 
+    : author;
   
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -69,12 +78,12 @@ const PromptCard: React.FC<PromptCardProps> = ({
       
       <CardHeader className="pb-2 flex flex-row items-center">
         <Avatar className="h-8 w-8 mr-2">
-          <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${author}`} alt={author} />
+          <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${displayName}`} alt={displayName} />
           <AvatarFallback>{authorInitials}</AvatarFallback>
         </Avatar>
         <div>
           <h3 className="text-lg font-semibold leading-none tracking-tight line-clamp-1">{title}</h3>
-          <p className="text-xs text-muted-foreground">By {author}</p>
+          <p className="text-xs text-muted-foreground">By {displayName}</p>
         </div>
       </CardHeader>
       
