@@ -4,17 +4,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { toast } from '@/hooks/use-toast';
-import { Pencil, Trash2, Plus, Sparkles, Shield } from 'lucide-react';
+import { toast } from 'sonner';
+import { Pencil, Trash2, Plus, Sparkles, Shield, Eye, ChevronRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PromptOptimizer from '@/components/PromptOptimizer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { useNavigate } from 'react-router-dom';
 
 interface Prompt {
   id: string;
@@ -28,6 +29,7 @@ interface Prompt {
 const ANONYMOUS_PROMPTS_KEY = 'promptflow-anonymous-prompts';
 
 const MyPrompts = () => {
+  const navigate = useNavigate();
   const { user, isAnonymous, enableAnonymousMode, disableAnonymousMode } = useAuth();
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +40,7 @@ const MyPrompts = () => {
   const [isPublic, setIsPublic] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('manual');
   const [isPrivacySheetOpen, setIsPrivacySheetOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const fetchPrompts = async () => {
     setIsLoading(true);
@@ -77,11 +80,7 @@ const MyPrompts = () => {
       setPrompts(data || []);
     } catch (error: any) {
       console.error('Error fetching prompts:', error);
-      toast({
-        variant: "destructive",
-        title: "Failed to load prompts",
-        description: error.message,
-      });
+      toast.error("Failed to load prompts: " + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -114,20 +113,12 @@ const MyPrompts = () => {
     
     // Ensure title and content are not empty
     if (!title.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Missing title",
-        description: "Please provide a title for your prompt.",
-      });
+      toast.error("Please provide a title for your prompt.");
       return;
     }
 
     if (!content.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Missing content",
-        description: "Please provide content for your prompt.",
-      });
+      toast.error("Please provide content for your prompt.");
       return;
     }
 
@@ -157,40 +148,26 @@ const MyPrompts = () => {
           localStorage.setItem(ANONYMOUS_PROMPTS_KEY, JSON.stringify(updatedPrompts));
           setPrompts(updatedPrompts);
           
-          toast({
-            title: "Prompt updated",
-            description: "Your prompt has been updated successfully (stored locally).",
-          });
+          toast.success("Prompt updated (stored locally)");
         } else {
           // Create new prompt
           const updatedPrompts = [newPrompt, ...storedPrompts];
           localStorage.setItem(ANONYMOUS_PROMPTS_KEY, JSON.stringify(updatedPrompts));
           setPrompts(updatedPrompts);
           
-          toast({
-            title: "Prompt created",
-            description: "Your prompt has been created successfully (stored locally).",
-          });
+          toast.success("Prompt created (stored locally)");
         }
         
         setIsDialogOpen(false);
       } catch (error: any) {
         console.error('Error saving prompt to localStorage:', error);
-        toast({
-          variant: "destructive",
-          title: "Failed to save prompt",
-          description: error.message || "An error occurred while saving your prompt locally.",
-        });
+        toast.error("Failed to save prompt locally: " + (error.message || "Unknown error"));
       }
       return;
     }
     
     if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Authentication required",
-        description: "Please sign in to save prompts to your account.",
-      });
+      toast.error("Please sign in to save prompts to your account.");
       return;
     }
     
@@ -208,10 +185,7 @@ const MyPrompts = () => {
         
         if (error) throw error;
         
-        toast({
-          title: "Prompt updated",
-          description: "Your prompt has been updated successfully.",
-        });
+        toast.success("Prompt updated successfully");
       } else {
         // Create new prompt
         const { error } = await supabase
@@ -225,21 +199,14 @@ const MyPrompts = () => {
         
         if (error) throw error;
         
-        toast({
-          title: "Prompt created",
-          description: "Your prompt has been created successfully.",
-        });
+        toast.success("Prompt created successfully");
       }
       
       setIsDialogOpen(false);
       fetchPrompts();
     } catch (error: any) {
       console.error('Error saving prompt:', error);
-      toast({
-        variant: "destructive",
-        title: "Failed to save prompt",
-        description: error.message || "An error occurred while saving your prompt.",
-      });
+      toast.error("Failed to save prompt: " + (error.message || "Unknown error"));
     }
   };
   
@@ -255,18 +222,11 @@ const MyPrompts = () => {
           localStorage.setItem(ANONYMOUS_PROMPTS_KEY, JSON.stringify(updatedPrompts));
           setPrompts(updatedPrompts);
           
-          toast({
-            title: "Prompt deleted",
-            description: "Your prompt has been deleted successfully.",
-          });
+          toast.success("Prompt deleted successfully");
         }
       } catch (error: any) {
         console.error('Error deleting prompt from localStorage:', error);
-        toast({
-          variant: "destructive",
-          title: "Failed to delete prompt",
-          description: error.message || "An error occurred while deleting your prompt.",
-        });
+        toast.error("Failed to delete prompt: " + (error.message || "Unknown error"));
       }
       return;
     }
@@ -279,19 +239,12 @@ const MyPrompts = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Prompt deleted",
-        description: "Your prompt has been deleted successfully.",
-      });
+      toast.success("Prompt deleted successfully");
       
       fetchPrompts();
     } catch (error: any) {
       console.error('Error deleting prompt:', error);
-      toast({
-        variant: "destructive",
-        title: "Failed to delete prompt",
-        description: error.message || "An error occurred while deleting your prompt.",
-      });
+      toast.error("Failed to delete prompt: " + (error.message || "Unknown error"));
     }
   };
 
@@ -311,11 +264,15 @@ const MyPrompts = () => {
     fetchPrompts();
   };
 
+  const viewPrompt = (id: string) => {
+    navigate(`/prompt/${id}`);
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-2">
-          <h1 className="text-2xl font-bold">My Prompts</h1>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-promptflow-purple to-promptflow-blue bg-clip-text text-transparent">My Prompts</h1>
           {isAnonymous && (
             <span className="inline-flex items-center px-3 py-1 text-sm rounded-full bg-yellow-100 text-yellow-800">
               <Shield size={14} className="mr-1" /> Anonymous Mode
@@ -323,16 +280,34 @@ const MyPrompts = () => {
           )}
         </div>
         <div className="flex space-x-2">
+          <div className="flex border rounded-md overflow-hidden">
+            <Button 
+              onClick={() => setViewMode('list')} 
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              className="rounded-none"
+              size="sm"
+            >
+              List
+            </Button>
+            <Button 
+              onClick={() => setViewMode('grid')} 
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              className="rounded-none"
+              size="sm"
+            >
+              Grid
+            </Button>
+          </div>
           <Button 
             onClick={() => setIsPrivacySheetOpen(true)} 
             variant="outline"
             className="flex items-center"
           >
-            <Shield size={16} className="mr-2" /> Privacy Settings
+            <Shield size={16} className="mr-2" /> Privacy
           </Button>
           <Button 
             onClick={openCreateDialog} 
-            className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue"
+            className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
           >
             <Plus size={16} className="mr-2" /> New Prompt
           </Button>
@@ -340,28 +315,56 @@ const MyPrompts = () => {
       </div>
       
       {isLoading ? (
-        <div className="text-center py-8">Loading prompts...</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-48 bg-gray-100 rounded-lg animate-pulse"></div>
+          ))}
+        </div>
       ) : prompts.length === 0 ? (
-        <Card>
+        <Card className="text-center p-8 bg-gradient-to-br from-gray-50 to-blue-50 border-dashed border-2 border-blue-200">
           <CardContent className="pt-6 text-center py-10">
-            <p className="text-gray-500 mb-4">
+            <img 
+              src="https://api.dicebear.com/7.x/shapes/svg?seed=empty-prompts" 
+              alt="No prompts" 
+              className="w-32 h-32 mx-auto mb-6 opacity-70"
+            />
+            <p className="text-gray-500 mb-6 text-lg">
               {isAnonymous ? 
                 "You haven't created any prompts in anonymous mode yet." : 
                 "You haven't created any prompts yet."}
             </p>
+            <p className="text-gray-500 mb-6">
+              Start creating prompts to enhance your AI interactions!
+            </p>
             <Button 
               onClick={openCreateDialog}
-              className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue"
+              className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
             >
-              Create your first prompt
+              <Plus size={16} className="mr-2" /> Create your first prompt
             </Button>
           </CardContent>
         </Card>
+      ) : viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {prompts.map((prompt) => (
+            <PromptCard 
+              key={prompt.id}
+              id={prompt.id}
+              title={prompt.title}
+              description={prompt.content}
+              llm="AI" // This could be replaced with actual LLM data if available
+              useCase={prompt.is_public ? "Public" : "Private"}
+              upvotes={0}
+              author={user?.email || "You"}
+              showViewButton={true}
+            />
+          ))}
+        </div>
       ) : (
-        <Card>
+        <Card className="shadow-sm border-blue-100">
           <CardContent className="p-0">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
                 <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>Status</TableHead>
@@ -371,7 +374,7 @@ const MyPrompts = () => {
               </TableHeader>
               <TableBody>
                 {prompts.map((prompt) => (
-                  <TableRow key={prompt.id}>
+                  <TableRow key={prompt.id} className="hover:bg-blue-50/30">
                     <TableCell className="font-medium">{prompt.title}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 text-xs rounded-full ${prompt.is_public ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
@@ -387,7 +390,15 @@ const MyPrompts = () => {
                     <TableCell className="text-right">
                       <Button 
                         variant="ghost" 
-                        size="icon" 
+                        size="sm" 
+                        onClick={() => viewPrompt(prompt.id)}
+                        className="h-8 w-8 text-blue-600"
+                      >
+                        <Eye size={16} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
                         onClick={() => openEditDialog(prompt)}
                         className="h-8 w-8"
                       >
@@ -395,7 +406,7 @@ const MyPrompts = () => {
                       </Button>
                       <Button 
                         variant="ghost" 
-                        size="icon" 
+                        size="sm" 
                         onClick={() => handleDelete(prompt.id)}
                         className="h-8 w-8 text-red-500 hover:text-red-700"
                       >

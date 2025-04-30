@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ThumbsUp, Share2 } from "lucide-react";
+import { Copy, ThumbsUp, Share2, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -19,6 +20,7 @@ interface PromptCardProps {
   author: string;
   id: string;
   onCopy?: (content: string) => void;
+  showViewButton?: boolean;
 }
 
 const PromptCard: React.FC<PromptCardProps> = ({
@@ -28,7 +30,8 @@ const PromptCard: React.FC<PromptCardProps> = ({
   useCase,
   author,
   id,
-  onCopy
+  onCopy,
+  showViewButton = false
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -97,6 +100,11 @@ const PromptCard: React.FC<PromptCardProps> = ({
   const handleClick = () => {
     navigate(`/prompt/${id}`);
   };
+
+  const handleView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/prompt/${id}`);
+  };
   
   return (
     <Card 
@@ -143,6 +151,16 @@ const PromptCard: React.FC<PromptCardProps> = ({
         </div>
         
         <div className="flex gap-2">
+          {showViewButton && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-blue-600 hover:text-blue-800 p-1 h-7"
+              onClick={handleView}
+            >
+              <Eye size={14} className="mr-1" /> View
+            </Button>
+          )}
           <Button 
             variant="ghost" 
             size="sm" 
