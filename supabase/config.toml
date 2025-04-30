@@ -1,5 +1,1 @@
-
 project_id = "wbfezuyehuvmdayylsrm"
-
-[functions.optimize-prompt]
-verify_jwt = true
