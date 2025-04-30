@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      collections: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_shared: boolean | null
+          name: string
+          share_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_shared?: boolean | null
+          name: string
+          share_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_shared?: boolean | null
+          name?: string
+          share_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       likes: {
         Row: {
           created_at: string | null
@@ -55,6 +85,42 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      prompt_collections: {
+        Row: {
+          collection_id: string
+          created_at: string
+          id: string
+          prompt_id: string
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          id?: string
+          prompt_id: string
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          id?: string
+          prompt_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_collections_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prompt_collections_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prompts: {
         Row: {

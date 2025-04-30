@@ -1,181 +1,162 @@
 
-import React from 'react';
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Copy, ThumbsUp, Share2, Eye } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { toast } from "sonner";
-import { useLikes } from "@/hooks/useLikes";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Card, 
+  CardContent, 
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, Share2, Eye } from 'lucide-react';
+import { toast } from 'sonner';
+import { useLikes } from '@/hooks/useLikes';
 
 interface PromptCardProps {
+  id: string;
   title: string;
   description: string;
   llm: string;
   useCase: string;
   upvotes: number;
   author: string;
-  id: string;
-  onCopy?: (content: string) => void;
   showViewButton?: boolean;
 }
 
-const PromptCard: React.FC<PromptCardProps> = ({
-  title,
-  description,
-  llm,
-  useCase,
+const PromptCard: React.FC<PromptCardProps> = ({ 
+  id, 
+  title, 
+  description, 
+  llm, 
+  useCase, 
+  upvotes, 
   author,
-  id,
-  onCopy,
   showViewButton = false
 }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { likesCount, isLiked, toggleLike } = useLikes(id);
-  
-  // Extract display name - prefer username from metadata if available
-  const getDisplayName = () => {
-    // If author looks like an email, prefer username from metadata
-    if (author.includes('@')) {
-      return author.split('@')[0]; // Fallback to first part of email
-    }
-    return author;
-  };
-  
-  const displayName = getDisplayName();
-  // Get initials for avatar fallback (max 2 characters)
-  const authorInitials = displayName.substring(0, 2).toUpperCase();
-  
-  const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onCopy) {
-      onCopy(description);
-    } else {
-      navigator.clipboard.writeText(description);
-      toast("Prompt content has been copied to your clipboard");
-    }
+  const [isHovered, setIsHovered] = useState(false);
+  const { isLiked, likesCount, toggleLike } = useLikes(id, upvotes);
+
+  const handleViewClick = () => {
+    navigate(`/prompt/${id}`);
   };
 
-  const handleLike = (e: React.MouseEvent) => {
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/prompt/${id}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("Link copied to clipboard!");
+  };
+
+  const handleLikeClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleLike();
   };
 
-  const handleShare = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    // Create a shareable URL for the prompt
-    const shareUrl = `${window.location.origin}/prompt/${id}`;
-    
-    // Try to use Web Share API if available
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: title,
-          text: `Check out this prompt: ${title}`,
-          url: shareUrl,
-        });
-        toast.success("Prompt shared successfully!");
-      } catch (error) {
-        console.error("Error sharing prompt:", error);
-        // Fall back to clipboard
-        copyToClipboard(shareUrl);
-      }
-    } else {
-      // Fall back to clipboard
-      copyToClipboard(shareUrl);
-    }
-  };
-  
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Share link copied to clipboard!");
+  const renderInitials = (name: string) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
-  const handleClick = () => {
-    navigate(`/prompt/${id}`);
+  const getRandomColor = (name: string) => {
+    const colors = [
+      'bg-red-500', 'bg-blue-500', 'bg-green-500', 
+      'bg-yellow-500', 'bg-purple-500', 'bg-pink-500',
+      'bg-indigo-500', 'bg-teal-500'
+    ];
+    const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+    return colors[index];
   };
 
-  const handleView = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigate(`/prompt/${id}`);
+  const truncateText = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
   };
-  
+
   return (
     <Card 
-      className="prompt-card h-full transition-all hover:shadow-md cursor-pointer flex flex-col"
-      onClick={handleClick}
+      className={`overflow-hidden transition-all duration-200 ${isHovered ? 'shadow-lg' : 'shadow-sm'} hover:shadow-lg hover:-translate-y-1`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={showViewButton ? handleViewClick : undefined}
     >
-      <div className="absolute top-0 right-0 bg-gradient-to-l from-blue-500 to-purple-500 text-white text-xs px-2 py-1 rounded-bl-md">
-        {llm}
-      </div>
-      
-      <CardHeader className="pb-2 flex flex-row items-center">
-        <Avatar className="h-8 w-8 mr-2">
-          <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${displayName}`} alt={displayName} />
-          <AvatarFallback>{authorInitials}</AvatarFallback>
-        </Avatar>
-        <div>
-          <h3 className="text-lg font-semibold leading-none tracking-tight line-clamp-1">{title}</h3>
-          <p className="text-xs text-muted-foreground">By {displayName}</p>
+      <CardHeader className="p-4 pb-0">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-lg font-bold mb-1">{title}</CardTitle>
+            <div className="flex flex-wrap gap-1 mb-2">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100">
+                {llm}
+              </Badge>
+              <Badge variant="outline" className="bg-purple-50 text-purple-700 hover:bg-purple-100">
+                {useCase}
+              </Badge>
+            </div>
+          </div>
         </div>
       </CardHeader>
-      
-      <CardContent className="pb-2 flex-grow">
-        <p className="text-sm text-gray-700 line-clamp-3">{description}</p>
+
+      <CardContent className="p-4 pb-0">
+        <p className="text-sm text-gray-600 line-clamp-3">{truncateText(description, 120)}</p>
       </CardContent>
-      
-      <CardFooter className="flex justify-between items-center pt-2 border-t">
-        <div className="flex gap-2">
-          <Badge variant="outline" className="bg-blue-50 text-blue-800">{useCase}</Badge>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className={`flex items-center gap-1 p-1 h-7 ${isLiked ? 'bg-pink-50 text-pink-600 hover:text-pink-700' : 'hover:bg-gray-100'}`}
-                  onClick={handleLike}
-                >
-                  <ThumbsUp size={12} className={isLiked ? "fill-current" : ""} /> {likesCount}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{likesCount} {likesCount === 1 ? 'like' : 'likes'}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+
+      <CardFooter className="p-4 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Avatar className={`h-6 w-6 ${getRandomColor(author)}`}>
+            <AvatarFallback className="text-xs text-white">
+              {renderInitials(author)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-xs text-gray-600">{truncateText(author, 15)}</span>
         </div>
-        
-        <div className="flex gap-2">
-          {showViewButton && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-blue-600 hover:text-blue-800 p-1 h-7"
-              onClick={handleView}
-            >
-              <Eye size={14} className="mr-1" /> View
-            </Button>
+
+        <div className="flex items-center gap-2">
+          {showViewButton ? (
+            <>
+              <Button 
+                onClick={handleShare}
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+              >
+                <Share2 size={16} />
+                <span className="sr-only">Share</span>
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+                onClick={handleViewClick}
+              >
+                <Eye size={16} />
+                <span className="sr-only">View</span>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                onClick={handleLikeClick}
+                variant={isLiked ? "secondary" : "ghost"} 
+                size="sm" 
+                className="h-8 gap-1 text-xs"
+              >
+                <Sparkles size={14} />
+                <span>{likesCount}</span>
+              </Button>
+              <Button 
+                onClick={handleShare}
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+              >
+                <Share2 size={16} />
+                <span className="sr-only">Share</span>
+              </Button>
+            </>
           )}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-gray-500 hover:text-purple-600 p-1 h-7"
-            onClick={handleCopy}
-          >
-            <Copy size={14} />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-gray-500 hover:text-purple-600 p-1 h-7"
-            onClick={handleShare}
-          >
-            <Share2 size={14} />
-          </Button>
         </div>
       </CardFooter>
     </Card>

@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
+import CollectionSelector from '@/components/collections/CollectionSelector';
 
 // Define the form schema
 const formSchema = z.object({
@@ -68,6 +69,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
   const { id } = useParams<{ id: string }>();
   const { user, isAnonymous } = useAuth();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);
 
@@ -178,6 +180,38 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
     setSelectedTags(selectedTags.filter(t => t !== tag));
   };
 
+  const savePromptCollections = async (promptId: string, collectionIds: string[]) => {
+    if (isAnonymous || !user || collectionIds.length === 0) return;
+    
+    try {
+      // If editing, first delete existing associations
+      if (isEditing) {
+        const { error: deleteError } = await supabase
+          .from('prompt_collections')
+          .delete()
+          .eq('prompt_id', promptId);
+        
+        if (deleteError) throw deleteError;
+      }
+      
+      // Create new associations
+      const promptCollections = collectionIds.map(collectionId => ({
+        prompt_id: promptId,
+        collection_id: collectionId
+      }));
+      
+      const { error } = await supabase
+        .from('prompt_collections')
+        .insert(promptCollections);
+      
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Error saving prompt collections:', error);
+      // We don't want to block the whole save just because collections failed
+      toast.error(`Note: Failed to save collections. ${error.message}`);
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (isAnonymous) {
       toast.error("You need to sign in to create prompts");
@@ -204,12 +238,18 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
 
       if (isEditing && id) {
         // Update existing prompt
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('prompts')
           .update(promptData)
-          .eq('id', id);
+          .eq('id', id)
+          .select();
 
         if (error) throw error;
+        
+        // Save collections for this prompt
+        if (data && data.length > 0) {
+          await savePromptCollections(id, selectedCollections);
+        }
 
         toast.success("Prompt updated successfully!");
         navigate(`/prompt/${id}`);
@@ -221,6 +261,11 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
           .select();
 
         if (error) throw error;
+        
+        // Save collections for this prompt
+        if (data && data.length > 0) {
+          await savePromptCollections(data[0].id, selectedCollections);
+        }
 
         toast.success("Prompt created successfully!");
         navigate(`/prompt/${data[0].id}`);
@@ -360,6 +405,18 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                   </Select>
                   <FormDescription>
                     Categories that describe your prompt (optional)
+                  </FormDescription>
+                </div>
+                
+                <div className="space-y-2">
+                  <FormLabel>Collections</FormLabel>
+                  <CollectionSelector 
+                    selectedCollections={selectedCollections}
+                    onSelectCollections={setSelectedCollections}
+                    promptId={isEditing ? id : undefined}
+                  />
+                  <FormDescription>
+                    Add this prompt to collections for better organization (optional)
                   </FormDescription>
                 </div>
                 

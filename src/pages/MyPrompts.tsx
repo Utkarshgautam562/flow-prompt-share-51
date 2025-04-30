@@ -17,6 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useNavigate } from 'react-router-dom';
 import PromptCard from '@/components/PromptCard';
+import CollectionsList from '@/components/collections/CollectionsList';
+import { SidebarProvider, Sidebar, SidebarContent, SidebarInset } from '@/components/ui/sidebar';
 
 interface Prompt {
   id: string;
@@ -36,6 +38,9 @@ const MyPrompts = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPrivacySheetOpen, setIsPrivacySheetOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [activeView, setActiveView] = useState<'all' | 'collection'>('all');
+  const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
+  const [collectionPrompts, setCollectionPrompts] = useState<Prompt[]>([]);
 
   const fetchPrompts = async () => {
     setIsLoading(true);
@@ -84,6 +89,53 @@ const MyPrompts = () => {
   useEffect(() => {
     fetchPrompts();
   }, [user, isAnonymous]);
+
+  const fetchCollectionPrompts = async (collectionId: string) => {
+    if (!collectionId || isAnonymous || !user) return;
+    
+    setIsLoading(true);
+    
+    try {
+      // First get all prompt_ids in this collection
+      const { data: promptCollections, error: collectionError } = await supabase
+        .from('prompt_collections')
+        .select('prompt_id')
+        .eq('collection_id', collectionId);
+      
+      if (collectionError) throw collectionError;
+      
+      if (promptCollections && promptCollections.length > 0) {
+        const promptIds = promptCollections.map(item => item.prompt_id);
+        
+        // Then get the prompt details
+        const { data: promptData, error: promptsError } = await supabase
+          .from('prompts')
+          .select('*')
+          .in('id', promptIds)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (promptsError) throw promptsError;
+        
+        setCollectionPrompts(promptData || []);
+      } else {
+        setCollectionPrompts([]);
+      }
+    } catch (error: any) {
+      console.error('Error fetching collection prompts:', error);
+      toast.error("Failed to load collection prompts: " + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    if (activeCollectionId) {
+      fetchCollectionPrompts(activeCollectionId);
+    } else {
+      setCollectionPrompts([]);
+    }
+  }, [activeCollectionId, user]);
   
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this prompt?")) return;
@@ -107,6 +159,13 @@ const MyPrompts = () => {
     }
     
     try {
+      // First delete all associations with collections
+      await supabase
+        .from('prompt_collections')
+        .delete()
+        .eq('prompt_id', id);
+      
+      // Then delete the prompt itself
       const { error } = await supabase
         .from('prompts')
         .delete()
@@ -116,7 +175,11 @@ const MyPrompts = () => {
       
       toast.success("Prompt deleted successfully");
       
-      fetchPrompts();
+      if (activeCollectionId) {
+        fetchCollectionPrompts(activeCollectionId);
+      } else {
+        fetchPrompts();
+      }
     } catch (error: any) {
       console.error('Error deleting prompt:', error);
       toast.error("Failed to delete prompt: " + (error.message || "Unknown error"));
@@ -144,6 +207,13 @@ const MyPrompts = () => {
   const createNewPrompt = () => {
     navigate('/create-prompt');
   };
+  
+  const handleCollectionClick = (collectionId: string) => {
+    setActiveCollectionId(collectionId);
+    setActiveView('collection');
+  };
+
+  const displayPrompts = activeView === 'collection' ? collectionPrompts : prompts;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -191,112 +261,168 @@ const MyPrompts = () => {
         </div>
       </div>
       
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-48 bg-gray-100 rounded-lg animate-pulse"></div>
-          ))}
-        </div>
-      ) : prompts.length === 0 ? (
-        <Card className="text-center p-8 bg-gradient-to-br from-gray-50 to-blue-50 border-dashed border-2 border-blue-200">
-          <CardContent className="pt-6 text-center py-10">
-            <img 
-              src="https://api.dicebear.com/7.x/shapes/svg?seed=empty-prompts" 
-              alt="No prompts" 
-              className="w-32 h-32 mx-auto mb-6 opacity-70"
-            />
-            <p className="text-gray-500 mb-6 text-lg">
-              {isAnonymous ? 
-                "You haven't created any prompts in anonymous mode yet." : 
-                "You haven't created any prompts yet."}
-            </p>
-            <p className="text-gray-500 mb-6">
-              Start creating prompts to enhance your AI interactions!
-            </p>
-            <Button 
-              onClick={createNewPrompt}
-              className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
-            >
-              <Plus size={16} className="mr-2" /> Create your first prompt
-            </Button>
-          </CardContent>
-        </Card>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {prompts.map((prompt) => (
-            <PromptCard 
-              key={prompt.id}
-              id={prompt.id}
-              title={prompt.title}
-              description={prompt.content}
-              llm="AI" // This could be replaced with actual LLM data if available
-              useCase={prompt.is_public ? "Public" : "Private"}
-              upvotes={0}
-              author={user?.email || "You"}
-              showViewButton={true}
-            />
-          ))}
-        </div>
-      ) : (
-        <Card className="shadow-sm border-blue-100">
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {prompts.map((prompt) => (
-                  <TableRow key={prompt.id} className="hover:bg-blue-50/30">
-                    <TableCell className="font-medium">{prompt.title}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 text-xs rounded-full ${prompt.is_public ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {prompt.is_public ? 'Public' : 'Private'}
-                      </span>
-                      {isAnonymous && (
-                        <span className="ml-2 px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
-                          Local
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>{new Date(prompt.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => viewPrompt(prompt.id)}
-                        className="h-8 w-8 text-blue-600"
-                      >
-                        <Eye size={16} />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => editPrompt(prompt.id)}
-                        className="h-8 w-8"
-                      >
-                        <Pencil size={16} />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleDelete(prompt.id)}
-                        className="h-8 w-8 text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+      <SidebarProvider>
+        <div className="flex min-h-[500px] w-full">
+          <Sidebar collapsible="icon">
+            <SidebarContent>
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList className="w-full mb-4">
+                  <TabsTrigger 
+                    value="all" 
+                    className="flex-1"
+                    onClick={() => setActiveView('all')}
+                  >
+                    All Prompts
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="collections" 
+                    className="flex-1"
+                  >
+                    Collections
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="all" className="space-y-4">
+                  <div className="text-sm text-muted-foreground">
+                    All your saved prompts
+                  </div>
+                </TabsContent>
+                <TabsContent value="collections">
+                  <CollectionsList onCollectionClick={handleCollectionClick} />
+                </TabsContent>
+              </Tabs>
+            </SidebarContent>
+          </Sidebar>
+          
+          <SidebarInset className="overflow-auto">
+            {activeView === 'collection' && activeCollectionId && (
+              <div className="mb-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setActiveView('all')}
+                  className="flex items-center gap-1"
+                >
+                  <ChevronRight size={16} className="rotate-180" />
+                  <span>Back to all prompts</span>
+                </Button>
+              </div>
+            )}
+            
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-48 bg-gray-100 rounded-lg animate-pulse"></div>
                 ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+              </div>
+            ) : displayPrompts.length === 0 ? (
+              <Card className="text-center p-8 bg-gradient-to-br from-gray-50 to-blue-50 border-dashed border-2 border-blue-200">
+                <CardContent className="pt-6 text-center py-10">
+                  <img 
+                    src="https://api.dicebear.com/7.x/shapes/svg?seed=empty-prompts" 
+                    alt="No prompts" 
+                    className="w-32 h-32 mx-auto mb-6 opacity-70"
+                  />
+                  <p className="text-gray-500 mb-6 text-lg">
+                    {isAnonymous ? 
+                      "You haven't created any prompts in anonymous mode yet." : 
+                      activeView === 'collection' ? 
+                        "No prompts in this collection yet." :
+                        "You haven't created any prompts yet."}
+                  </p>
+                  <p className="text-gray-500 mb-6">
+                    {activeView === 'collection' ? 
+                      "Add prompts to this collection when creating or editing a prompt." :
+                      "Start creating prompts to enhance your AI interactions!"}
+                  </p>
+                  {activeView !== 'collection' && (
+                    <Button 
+                      onClick={createNewPrompt}
+                      className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
+                    >
+                      <Plus size={16} className="mr-2" /> Create your first prompt
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ) : viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {displayPrompts.map((prompt) => (
+                  <PromptCard 
+                    key={prompt.id}
+                    id={prompt.id}
+                    title={prompt.title}
+                    description={prompt.content}
+                    llm="AI" // This could be replaced with actual LLM data if available
+                    useCase={prompt.is_public ? "Public" : "Private"}
+                    upvotes={0}
+                    author={user?.email || "You"}
+                    showViewButton={true}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="shadow-sm border-blue-100">
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {displayPrompts.map((prompt) => (
+                        <TableRow key={prompt.id} className="hover:bg-blue-50/30">
+                          <TableCell className="font-medium">{prompt.title}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 text-xs rounded-full ${prompt.is_public ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                              {prompt.is_public ? 'Public' : 'Private'}
+                            </span>
+                            {isAnonymous && (
+                              <span className="ml-2 px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                                Local
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>{new Date(prompt.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-right">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => viewPrompt(prompt.id)}
+                              className="h-8 w-8 text-blue-600"
+                            >
+                              <Eye size={16} />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => editPrompt(prompt.id)}
+                              className="h-8 w-8"
+                            >
+                              <Pencil size={16} />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleDelete(prompt.id)}
+                              className="h-8 w-8 text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
 
       {/* Privacy Settings Sheet */}
       <Sheet open={isPrivacySheetOpen} onOpenChange={setIsPrivacySheetOpen}>
@@ -356,3 +482,4 @@ const MyPrompts = () => {
 };
 
 export default MyPrompts;
+
