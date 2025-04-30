@@ -7,6 +7,7 @@ import SearchBar, { SearchFilters } from '@/components/SearchBar';
 import PromptCard from '@/components/PromptCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Json } from '@/integrations/supabase/types';
 
 interface Prompt {
   id: string;
@@ -78,23 +79,38 @@ const Explore = () => {
 
       // Process the data to ensure it matches the Prompt interface
       return (data || []).map(item => {
-        // Parse llm_settings if it's a string
-        let llmSettings = item.llm_settings;
-        if (typeof llmSettings === 'string') {
-          try {
-            llmSettings = JSON.parse(llmSettings);
-          } catch (e) {
-            console.error('Error parsing llm_settings', e);
-            llmSettings = { model: 'Unknown' };
+        // Parse llm_settings if needed and ensure it has the expected structure
+        let llmSettings: { model: string } = { model: 'Unknown' };
+        
+        if (item.llm_settings) {
+          // Handle different possible types of llm_settings
+          if (typeof item.llm_settings === 'string') {
+            try {
+              // If it's a string, try to parse it as JSON
+              const parsed = JSON.parse(item.llm_settings);
+              llmSettings = { model: parsed.model || 'Unknown' };
+            } catch (e) {
+              console.error('Error parsing llm_settings string:', e);
+            }
+          } else if (typeof item.llm_settings === 'object') {
+            // If it's already an object, ensure it has the model property
+            const settings = item.llm_settings as Json;
+            if (typeof settings === 'object' && settings !== null && !Array.isArray(settings) && 'model' in settings) {
+              llmSettings = { model: String(settings.model) };
+            }
           }
-        } else if (!llmSettings || typeof llmSettings !== 'object') {
-          llmSettings = { model: 'Unknown' };
         }
 
+        // Return a properly typed Prompt object
         return {
-          ...item,
-          llm_settings: llmSettings
-        } as Prompt;
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          llm_settings: llmSettings,
+          user_id: item.user_id || '',
+          created_at: item.created_at || new Date().toISOString(),
+          profiles: item.profiles as { username: string } | undefined
+        } satisfies Prompt;
       });
     } catch (error) {
       console.error('Error fetching prompts:', error);
