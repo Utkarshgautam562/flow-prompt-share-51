@@ -10,6 +10,8 @@ import Auth from "./pages/Auth";
 import MyPrompts from "./pages/MyPrompts";
 import Explore from "./pages/Explore";
 import PromptDetail from "./pages/PromptDetail";
+import CreatePrompt from "./pages/CreatePrompt";
+import UserProfile from "./pages/UserProfile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 
@@ -32,6 +34,22 @@ const App = () => (
               element={
                 <ProtectedRoute allowAnonymous={true}>
                   <MyPrompts />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/create-prompt" 
+              element={
+                <ProtectedRoute allowAnonymous={false}>
+                  <CreatePrompt />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute allowAnonymous={false}>
+                  <UserProfile />
                 </ProtectedRoute>
               } 
             />

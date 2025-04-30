@@ -1,133 +1,203 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { Menu, X, User } from "lucide-react";
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Menu, LogOut, User, Lock, Unlock, Plus } from 'lucide-react';
+
+interface NavItemProps {
+  href: string;
+  children: React.ReactNode;
+  exact?: boolean;
+}
+
+const NavItem: React.FC<NavItemProps> = ({ href, children, exact = true }) => {
+  const location = useLocation();
+  const isActive = exact ? location.pathname === href : location.pathname.startsWith(href);
+  
+  return (
+    <Link
+      to={href}
+      className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+        isActive 
+          ? 'bg-slate-100 text-slate-900'
+          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+      }`}
+    >
+      {children}
+    </Link>
+  );
+};
 
 const Navbar = () => {
-  const { user, profile, signOut } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
+  const navigate = useNavigate();
+  const { user, isLoading, isAnonymous, signOut, toggleAnonymousMode } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
   const handleSignOut = async () => {
     await signOut();
+    navigate('/');
   };
-
+  
   return (
-    <nav className="bg-white border-b">
-      <div className="container mx-auto px-4 flex items-center justify-between h-16">
-        {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue rounded-md w-8 h-8"></div>
-          <span className="text-xl font-bold">PromptFlow</span>
-        </Link>
+    <header className="border-b bg-white">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="flex h-16 items-center justify-between">
+          {/* Logo and Brand */}
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center">
+              <div className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue rounded-md w-8 h-8 mr-2"></div>
+              <span className="text-xl font-bold">PromptFlow</span>
+            </Link>
+            
+            {/* Desktop Navigation */}
+            <nav className="hidden md:ml-8 md:flex md:space-x-2">
+              <NavItem href="/">Home</NavItem>
+              <NavItem href="/explore">Explore</NavItem>
+              {user && <NavItem href="/my-prompts">My Prompts</NavItem>}
+            </nav>
+          </div>
+          
+          {/* Right Side Actions */}
+          <div className="flex items-center space-x-2">
+            {/* Create Prompt Button - Desktop */}
+            {user && (
+              <Button 
+                onClick={() => navigate('/create-prompt')}
+                className="hidden md:flex gap-1 bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
+              >
+                <Plus size={16} />
+                Create Prompt
+              </Button>
+            )}
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-6">
-          <Link to="/explore" className="text-gray-700 hover:text-gray-900">
-            Explore
-          </Link>
-          {user ? (
-            <>
-              <Link to="/my-prompts" className="text-gray-700 hover:text-gray-900">
-                My Prompts
-              </Link>
+            {/* Anonymous Mode Toggle */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleAnonymousMode}
+              title={isAnonymous ? "Exit Anonymous Mode" : "Enter Anonymous Mode"}
+              className="hidden md:flex"
+            >
+              {isAnonymous ? <Unlock size={18} /> : <Lock size={18} />}
+            </Button>
+            
+            {/* Auth Button or User Menu */}
+            {isLoading ? (
+              <div className="h-9 w-9 rounded-full bg-slate-200 animate-pulse"></div>
+            ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative rounded-full h-8 w-8 p-0">
-                    <User size={18} />
+                  <Button variant="ghost" className="rounded-full h-9 w-9 p-0 overflow-hidden">
+                    <img 
+                      src={`https://api.dicebear.com/7.x/initials/svg?seed=${
+                        user.email || 'User'
+                      }`}
+                      alt="User Avatar" 
+                      className="h-full w-full object-cover"
+                    />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-2 py-1.5 text-sm font-medium">
-                    {profile?.username || user.email}
-                  </div>
+                  <DropdownMenuLabel>
+                    {isAnonymous ? 'Anonymous User' : (user.email || 'User')}
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/my-prompts" className="cursor-pointer">My Prompts</Link>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem onClick={() => navigate('/profile')}>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/my-prompts')}>
+                      <span className="mr-2 h-4 w-4">📝</span>
+                      <span>My Prompts</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/create-prompt')}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      <span>Create Prompt</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={toggleAnonymousMode}>
+                    {isAnonymous ? (
+                      <>
+                        <Unlock className="mr-2 h-4 w-4" />
+                        <span>Exit Anonymous Mode</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="mr-2 h-4 w-4" />
+                        <span>Enter Anonymous Mode</span>
+                      </>
+                    )}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
-                    Sign Out
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-500">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sign out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </>
-          ) : (
-            <Link to="/auth">
-              <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
-                Sign In
-              </Button>
-            </Link>
-          )}
-        </div>
-
-        {/* Mobile Menu Button */}
-        <div className="md:hidden">
-          <Button variant="ghost" onClick={toggleMenu} size="icon">
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </Button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-white border-t">
-          <div className="container mx-auto px-4 py-3 space-y-3">
-            <Link 
-              to="/explore" 
-              className="block py-2 text-gray-700 hover:text-gray-900"
-              onClick={toggleMenu}
-            >
-              Explore
-            </Link>
-            {user ? (
-              <>
-                <Link 
-                  to="/my-prompts" 
-                  className="block py-2 text-gray-700 hover:text-gray-900"
-                  onClick={toggleMenu}
-                >
-                  My Prompts
-                </Link>
-                <div className="pt-2 border-t">
-                  <div className="py-2 text-sm text-gray-500">
-                    {profile?.username || user.email}
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-center mt-2"
-                    onClick={() => {
-                      handleSignOut();
-                      toggleMenu();
-                    }}
-                  >
-                    Sign Out
-                  </Button>
-                </div>
-              </>
             ) : (
-              <Link to="/auth" onClick={toggleMenu} className="block w-full">
-                <Button className="w-full bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
-                  Sign In
-                </Button>
-              </Link>
+              <Button 
+                onClick={() => navigate('/auth')}
+                className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
+              >
+                Sign in
+              </Button>
             )}
+            
+            {/* Mobile Menu Button */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <Menu />
+            </Button>
           </div>
         </div>
-      )}
-    </nav>
+        
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden py-4 space-y-2">
+            <Link to="/" className="block px-3 py-2 text-base font-medium hover:bg-slate-50 rounded-md">
+              Home
+            </Link>
+            <Link to="/explore" className="block px-3 py-2 text-base font-medium hover:bg-slate-50 rounded-md">
+              Explore
+            </Link>
+            {user && (
+              <Link to="/my-prompts" className="block px-3 py-2 text-base font-medium hover:bg-slate-50 rounded-md">
+                My Prompts
+              </Link>
+            )}
+            {user && (
+              <Link to="/create-prompt" className="flex items-center gap-2 px-3 py-2 text-base font-medium hover:bg-slate-50 rounded-md text-promptflow-purple">
+                <Plus size={16} />
+                Create Prompt
+              </Link>
+            )}
+            <div className="pt-2 border-t">
+              <button onClick={toggleAnonymousMode} className="flex items-center gap-2 w-full px-3 py-2 text-base font-medium hover:bg-slate-50 rounded-md">
+                {isAnonymous ? <Unlock size={18} /> : <Lock size={18} />}
+                {isAnonymous ? 'Exit Anonymous Mode' : 'Enter Anonymous Mode'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </header>
   );
 };
 
