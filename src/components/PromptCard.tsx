@@ -3,10 +3,11 @@ import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ThumbsUp, User } from "lucide-react";
+import { Copy, ThumbsUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "@/hooks/use-toast";
 
 interface PromptCardProps {
   title: string;
@@ -34,7 +35,15 @@ const PromptCard: React.FC<PromptCardProps> = ({
   
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onCopy) onCopy(description);
+    if (onCopy) {
+      onCopy(description);
+    } else {
+      navigator.clipboard.writeText(description);
+      toast({
+        title: "Copied to clipboard",
+        description: "Prompt content has been copied to your clipboard",
+      });
+    }
   };
 
   const handleClick = () => {

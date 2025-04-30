@@ -24,6 +24,9 @@ interface Prompt {
   profiles: {
     username: string;
   };
+  is_public?: boolean;
+  user_id?: string;
+  search_vector?: unknown;
 }
 
 const USE_CASES = {
@@ -87,12 +90,15 @@ const Explore = () => {
       if (error) throw error;
       
       // Transform data to handle nested profile info
-      const formattedData = data?.map(item => ({
-        ...item,
-        profiles: item.profiles as { username: string }
-      })) || [];
-      
-      setPrompts(formattedData);
+      if (data) {
+        const formattedData: Prompt[] = data.map(item => ({
+          ...item,
+          profiles: item.profiles as { username: string },
+          llm_settings: item.llm_settings as { model: string; temperature: number }
+        }));
+        
+        setPrompts(formattedData);
+      }
     } catch (error: any) {
       console.error('Error fetching prompts:', error);
       setError('Failed to load prompts. Please try again.');

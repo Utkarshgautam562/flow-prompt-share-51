@@ -172,6 +172,7 @@ const Index = () => {
               {featuredPrompts.map((prompt) => (
                 <PromptCard 
                   key={prompt.id}
+                  id={prompt.id}
                   title={prompt.title}
                   description={prompt.description}
                   llm={prompt.llm}
