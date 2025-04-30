@@ -46,6 +46,14 @@ const App = () => (
               } 
             />
             <Route 
+              path="/edit-prompt/:id" 
+              element={
+                <ProtectedRoute allowAnonymous={false}>
+                  <CreatePrompt isEditing={true} />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/profile" 
               element={
                 <ProtectedRoute allowAnonymous={false}>

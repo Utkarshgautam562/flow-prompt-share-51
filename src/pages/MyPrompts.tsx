@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,12 +34,6 @@ const MyPrompts = () => {
   const { user, isAnonymous, enableAnonymousMode, disableAnonymousMode } = useAuth();
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentPrompt, setCurrentPrompt] = useState<Partial<Prompt> | null>(null);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('manual');
   const [isPrivacySheetOpen, setIsPrivacySheetOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
@@ -90,126 +85,6 @@ const MyPrompts = () => {
     fetchPrompts();
   }, [user, isAnonymous]);
   
-  const openCreateDialog = () => {
-    setCurrentPrompt(null);
-    setTitle('');
-    setContent('');
-    setIsPublic(false);
-    setActiveTab('manual');
-    setIsDialogOpen(true);
-  };
-  
-  const openEditDialog = (prompt: Prompt) => {
-    setCurrentPrompt(prompt);
-    setTitle(prompt.title);
-    setContent(prompt.content);
-    setIsPublic(prompt.is_public);
-    setActiveTab('manual');
-    setIsDialogOpen(true);
-  };
-  
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Ensure title and content are not empty
-    if (!title.trim()) {
-      toast.error("Please provide a title for your prompt.");
-      return;
-    }
-
-    if (!content.trim()) {
-      toast.error("Please provide content for your prompt.");
-      return;
-    }
-
-    if (isAnonymous) {
-      // Save to localStorage for anonymous users
-      const newPrompt: Prompt = {
-        id: currentPrompt?.id || `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        title,
-        content,
-        is_public: isPublic,
-        created_at: currentPrompt?.created_at || new Date().toISOString(),
-      };
-      
-      try {
-        const storedPromptsJson = localStorage.getItem(ANONYMOUS_PROMPTS_KEY);
-        let storedPrompts: Prompt[] = [];
-        
-        if (storedPromptsJson) {
-          storedPrompts = JSON.parse(storedPromptsJson);
-        }
-        
-        if (currentPrompt?.id) {
-          // Update existing prompt
-          const updatedPrompts = storedPrompts.map(p => 
-            p.id === currentPrompt.id ? newPrompt : p
-          );
-          localStorage.setItem(ANONYMOUS_PROMPTS_KEY, JSON.stringify(updatedPrompts));
-          setPrompts(updatedPrompts);
-          
-          toast.success("Prompt updated (stored locally)");
-        } else {
-          // Create new prompt
-          const updatedPrompts = [newPrompt, ...storedPrompts];
-          localStorage.setItem(ANONYMOUS_PROMPTS_KEY, JSON.stringify(updatedPrompts));
-          setPrompts(updatedPrompts);
-          
-          toast.success("Prompt created (stored locally)");
-        }
-        
-        setIsDialogOpen(false);
-      } catch (error: any) {
-        console.error('Error saving prompt to localStorage:', error);
-        toast.error("Failed to save prompt locally: " + (error.message || "Unknown error"));
-      }
-      return;
-    }
-    
-    if (!user) {
-      toast.error("Please sign in to save prompts to your account.");
-      return;
-    }
-    
-    try {
-      if (currentPrompt?.id) {
-        // Update existing prompt
-        const { error } = await supabase
-          .from('prompts')
-          .update({
-            title,
-            content,
-            is_public: isPublic
-          })
-          .eq('id', currentPrompt.id);
-        
-        if (error) throw error;
-        
-        toast.success("Prompt updated successfully");
-      } else {
-        // Create new prompt
-        const { error } = await supabase
-          .from('prompts')
-          .insert({
-            user_id: user.id,
-            title,
-            content,
-            is_public: isPublic
-          });
-        
-        if (error) throw error;
-        
-        toast.success("Prompt created successfully");
-      }
-      
-      setIsDialogOpen(false);
-      fetchPrompts();
-    } catch (error: any) {
-      console.error('Error saving prompt:', error);
-      toast.error("Failed to save prompt: " + (error.message || "Unknown error"));
-    }
-  };
-  
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this prompt?")) return;
     
@@ -248,12 +123,6 @@ const MyPrompts = () => {
     }
   };
 
-  const handleOptimize = (optimizedContent: string) => {
-    setContent(optimizedContent);
-    // Auto-switch to manual tab after optimization
-    setActiveTab('manual');
-  };
-
   const toggleAnonymousMode = () => {
     if (isAnonymous) {
       disableAnonymousMode();
@@ -266,6 +135,14 @@ const MyPrompts = () => {
 
   const viewPrompt = (id: string) => {
     navigate(`/prompt/${id}`);
+  };
+  
+  const editPrompt = (id: string) => {
+    navigate(`/edit-prompt/${id}`);
+  };
+  
+  const createNewPrompt = () => {
+    navigate('/create-prompt');
   };
 
   return (
@@ -306,7 +183,7 @@ const MyPrompts = () => {
             <Shield size={16} className="mr-2" /> Privacy
           </Button>
           <Button 
-            onClick={openCreateDialog} 
+            onClick={createNewPrompt} 
             className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
           >
             <Plus size={16} className="mr-2" /> New Prompt
@@ -337,7 +214,7 @@ const MyPrompts = () => {
               Start creating prompts to enhance your AI interactions!
             </p>
             <Button 
-              onClick={openCreateDialog}
+              onClick={createNewPrompt}
               className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
             >
               <Plus size={16} className="mr-2" /> Create your first prompt
@@ -399,7 +276,7 @@ const MyPrompts = () => {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        onClick={() => openEditDialog(prompt)}
+                        onClick={() => editPrompt(prompt.id)}
                         className="h-8 w-8"
                       >
                         <Pencil size={16} />
@@ -420,82 +297,6 @@ const MyPrompts = () => {
           </CardContent>
         </Card>
       )}
-      
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>{currentPrompt ? 'Edit Prompt' : 'Create New Prompt'}</DialogTitle>
-            <DialogDescription>
-              {currentPrompt
-                ? 'Update your prompt details below.'
-                : 'Fill in the details to create a new prompt.'}
-              {isAnonymous && (
-                <p className="mt-2 text-sm text-yellow-600 bg-yellow-50 p-2 rounded">
-                  <Shield className="inline mr-1" size={14} /> You are in anonymous mode. 
-                  Your prompts will be saved locally in your browser and won't be backed up to your account.
-                </p>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleSave} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input 
-                id="title" 
-                value={title} 
-                onChange={(e) => setTitle(e.target.value)} 
-                placeholder="Enter prompt title" 
-                required 
-              />
-            </div>
-            
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="manual">Write Manually</TabsTrigger>
-                <TabsTrigger value="optimize">
-                  <Sparkles size={16} className="mr-2" />
-                  AI Optimize
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="manual" className="space-y-2">
-                <Label htmlFor="content">Prompt Content</Label>
-                <Textarea 
-                  id="content" 
-                  value={content} 
-                  onChange={(e) => setContent(e.target.value)} 
-                  placeholder="Write your prompt here..." 
-                  className="h-40 resize-none" 
-                  required 
-                />
-              </TabsContent>
-              
-              <TabsContent value="optimize" className="pt-2">
-                <PromptOptimizer onOptimize={handleOptimize} initialContent={content} />
-              </TabsContent>
-            </Tabs>
-            
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="public" 
-                checked={isPublic} 
-                onCheckedChange={setIsPublic} 
-              />
-              <Label htmlFor="public" className="cursor-pointer">Make this prompt public</Label>
-            </div>
-            
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue">
-                {currentPrompt ? 'Update Prompt' : 'Create Prompt'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Privacy Settings Sheet */}
       <Sheet open={isPrivacySheetOpen} onOpenChange={setIsPrivacySheetOpen}>

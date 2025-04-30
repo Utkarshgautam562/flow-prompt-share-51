@@ -154,11 +154,18 @@ const Index = () => {
             
             <div className="flex gap-4">
               {user ? (
-                <Link to="/my-prompts">
-                  <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
-                    My Prompts
-                  </Button>
-                </Link>
+                <>
+                  <Link to="/my-prompts">
+                    <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
+                      My Prompts
+                    </Button>
+                  </Link>
+                  <Link to="/create-prompt">
+                    <Button variant="outline">
+                      Create Prompt
+                    </Button>
+                  </Link>
+                </>
               ) : (
                 <Link to="/auth">
                   <Button className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
