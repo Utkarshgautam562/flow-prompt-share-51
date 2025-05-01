@@ -268,13 +268,15 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
   };
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <Navbar />
-      <div className="container mx-auto py-8 px-4 md:px-6">
+      <div className="container mx-auto py-8 px-4 md:px-6 animate-fade-in">
         <div className="mb-6">
           <BackButton />
-          <h1 className="text-2xl font-bold mt-4">{isEditing ? 'Edit Prompt' : 'Create New Prompt'}</h1>
-          <p className="text-gray-500">
+          <h1 className="text-2xl font-bold mt-4 text-gradient-primary bg-clip-text text-transparent bg-gradient-to-r from-promptflow-purple to-promptflow-blue">
+            {isEditing ? 'Edit Prompt' : 'Create New Prompt'}
+          </h1>
+          <p className="text-gray-600">
             {isEditing 
               ? 'Update your prompt details and content' 
               : 'Create a new AI prompt to add to your collection'}
@@ -283,11 +285,11 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2">
-            <Card>
-              <CardHeader>
+            <Card className="shadow-md hover:shadow-lg transition-all border-0 overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 border-b">
                 <CardTitle>{isEditing ? 'Edit Prompt' : 'Prompt Details'}</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <FormField
@@ -301,10 +303,34 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                               placeholder="E.g. GPT-4 Email Writer" 
                               {...field} 
                               disabled={isLoading}
+                              className="border-gray-300 focus:border-promptflow-purple focus:ring-promptflow-purple"
                             />
                           </FormControl>
                           <FormDescription>
                             A descriptive title for your prompt
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    {/* Moved prompt content field to be right after the title */}
+                    <FormField
+                      control={form.control}
+                      name="content"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Prompt Content</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Write your prompt content here..." 
+                              {...field} 
+                              className="min-h-32 font-mono border-gray-300 focus:border-promptflow-purple focus:ring-promptflow-purple"
+                              disabled={isLoading}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            The actual prompt text that will be sent to the AI model
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -322,6 +348,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                               placeholder="Briefly describe what this prompt does" 
                               {...field} 
                               disabled={isLoading}
+                              className="border-gray-300 focus:border-promptflow-purple focus:ring-promptflow-purple"
                             />
                           </FormControl>
                           <FormDescription>
@@ -345,7 +372,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                               disabled={isLoading}
                             >
                               <FormControl>
-                                <SelectTrigger>
+                                <SelectTrigger className="border-gray-300 focus:border-promptflow-purple focus:ring-promptflow-purple">
                                   <SelectValue placeholder="Select a model" />
                                 </SelectTrigger>
                               </FormControl>
@@ -379,7 +406,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                                 step="0.1"
                                 {...field}
                                 disabled={isLoading}
-                                className="w-full h-8"
+                                className="w-full h-8 accent-promptflow-purple"
                               />
                             </FormControl>
                             <FormDescription>
@@ -393,36 +420,15 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                     
                     <FormField
                       control={form.control}
-                      name="content"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Prompt Content</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Write your prompt content here..." 
-                              {...field} 
-                              className="min-h-32 font-mono"
-                              disabled={isLoading}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            The actual prompt text that will be sent to the AI model
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
                       name="isPublic"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 border p-4 rounded-md">
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 border p-4 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors">
                           <FormControl>
                             <Checkbox
                               checked={field.value}
                               onCheckedChange={field.onChange}
                               disabled={isLoading}
+                              className="data-[state=checked]:bg-promptflow-purple data-[state=checked]:border-promptflow-purple"
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
@@ -435,7 +441,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                       )}
                     />
                     
-                    <div className="border p-4 rounded-md">
+                    <div className="border p-4 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors">
                       <h3 className="text-sm font-medium mb-2">Collections</h3>
                       <CollectionSelector 
                         selectedCollections={selectedCollections}
@@ -447,7 +453,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                     <Button 
                       type="submit" 
                       disabled={isLoading}
-                      className="w-full bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90"
+                      className="w-full bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90 transition-all"
                     >
                       {isLoading ? (
                         <>
@@ -464,32 +470,42 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
             </Card>
           </div>
           
-          <div>
-            <Card>
-              <CardHeader>
+          <div className="md:block">
+            <Card className="shadow-md hover:shadow-lg transition-all border-0 overflow-hidden sticky top-4">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 border-b">
                 <CardTitle>Prompt Tools</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4">
                 <Tabs defaultValue="optimize">
-                  <TabsList className="w-full">
+                  <TabsList className="w-full mb-4">
                     <TabsTrigger value="optimize" className="flex-1">Optimize</TabsTrigger>
                     <TabsTrigger value="examples" className="flex-1">Examples</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="optimize" className="pt-4">
+                  <TabsContent value="optimize" className="pt-2">
                     <PromptOptimizer 
                       onOptimize={handleOptimizedContent}
                       initialContent={form.getValues('content')}
                     />
                   </TabsContent>
-                  <TabsContent value="examples" className="pt-4">
-                    <div className="text-sm">
-                      <p className="mb-4">Good prompt examples for inspiration:</p>
-                      <ul className="space-y-2 list-disc pl-4">
-                        <li>Be specific about the format you want</li>
-                        <li>Include examples or templates</li>
-                        <li>Define the tone and style</li>
-                        <li>Specify any constraints or requirements</li>
-                      </ul>
+                  <TabsContent value="examples" className="pt-2">
+                    <div className="text-sm space-y-4">
+                      <p className="font-medium text-gray-700">Good prompt examples:</p>
+                      <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                        <h4 className="font-medium text-promptflow-purple mb-1">Structure</h4>
+                        <ul className="list-disc pl-4 text-gray-600">
+                          <li>Be specific about the desired format</li>
+                          <li>Include examples or templates</li>
+                          <li>Define the tone and style</li>
+                        </ul>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                        <h4 className="font-medium text-promptflow-blue mb-1">Clarity</h4>
+                        <ul className="list-disc pl-4 text-gray-600">
+                          <li>Set clear constraints</li>
+                          <li>Specify any technical requirements</li>
+                          <li>Indicate content length expectations</li>
+                        </ul>
+                      </div>
                     </div>
                   </TabsContent>
                 </Tabs>
