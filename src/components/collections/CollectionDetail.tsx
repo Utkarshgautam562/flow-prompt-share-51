@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import PromptCard from '@/components/PromptCard';
 import { Button } from '@/components/ui/button';
 import { Prompt } from '@/types/prompt';
+import { Json } from '@/integrations/supabase/types';
 
 interface CollectionDetailProps {
   collectionId?: string;
@@ -68,7 +69,7 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
   
   // Fetch prompts in this collection
   const { 
-    data: prompts = [],
+    data: promptsData = [],
     isLoading: promptsLoading,
     error: promptsError,
   } = useQuery({
@@ -99,13 +100,63 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
     },
     enabled: !!collection?.id,
   });
+
+  // Transform the raw Supabase prompts data to match our Prompt interface
+  const prompts = promptsData.map((item: any) => {
+    // Parse llm_settings if needed and ensure it has the expected structure
+    let llmSettings: { model: string; temperature?: number } = { model: 'Unknown' };
+    
+    if (item.llm_settings) {
+      // Handle different possible types of llm_settings
+      if (typeof item.llm_settings === 'string') {
+        try {
+          // If it's a string, try to parse it as JSON
+          const parsed = JSON.parse(item.llm_settings);
+          llmSettings = { 
+            model: parsed.model || 'Unknown',
+            temperature: parsed.temperature
+          };
+        } catch (e) {
+          console.error('Error parsing llm_settings string:', e);
+        }
+      } else if (typeof item.llm_settings === 'object') {
+        // If it's already an object, ensure it has the model property
+        const settings = item.llm_settings as Json;
+        if (typeof settings === 'object' && settings !== null && !Array.isArray(settings) && 'model' in settings) {
+          llmSettings = { 
+            model: String(settings.model),
+            temperature: typeof settings.temperature === 'number' ? settings.temperature : undefined
+          };
+        }
+      }
+    }
+
+    // Return a properly typed Prompt object
+    return {
+      id: item.id,
+      title: item.title,
+      content: item.content,
+      description: '', // Add a default empty string for description
+      llm_settings: llmSettings,
+      user_id: item.user_id || '',
+      created_at: item.created_at || new Date().toISOString(),
+      is_public: item.is_public || false,
+      is_shared: false,
+      profiles: item.profiles as { username: string } | undefined
+    } as Prompt;
+  });
   
   const isLoading = collectionLoading || promptsLoading;
   const error = collectionError || promptsError;
   
+  useEffect(() => {
+    if (error) {
+      toast.error('Error loading collection data');
+      console.error('Collection loading error:', error);
+    }
+  }, [error]);
+  
   if (error) {
-    toast.error('Error loading collection data');
-    console.error('Collection loading error:', error);
     return (
       <div className="p-8 text-center bg-white rounded-lg shadow">
         <h2 className="text-xl font-semibold text-red-500 mb-4">Error Loading Collection</h2>
@@ -165,31 +216,19 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {prompts.map((prompt: any) => {
-            let modelName = "Unknown";
-            try {
-              if (prompt.llm_settings && typeof prompt.llm_settings === 'object') {
-                const settings = prompt.llm_settings as { model?: string };
-                modelName = settings.model || "Unknown";
-              }
-            } catch (e) {
-              console.error("Error parsing llm_settings:", e);
-            }
-            
-            return (
-              <PromptCard
-                key={prompt.id}
-                id={prompt.id}
-                title={prompt.title}
-                description={prompt.content}
-                llm={modelName}
-                useCase="General"
-                upvotes={0}
-                author={prompt.profiles?.username || "Anonymous"}
-                showViewButton={true}
-              />
-            );
-          })}
+          {prompts.map((prompt) => (
+            <PromptCard
+              key={prompt.id}
+              id={prompt.id}
+              title={prompt.title}
+              description={prompt.content}
+              llm={prompt.llm_settings.model}
+              useCase="General"
+              upvotes={0}
+              author={prompt.profiles?.username || "Anonymous"}
+              showViewButton={true}
+            />
+          ))}
         </div>
       )}
     </div>

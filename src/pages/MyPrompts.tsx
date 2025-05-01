@@ -16,6 +16,7 @@ import AnonymousUserView from '@/components/profile/AnonymousUserView';
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from '@tanstack/react-query';
 import { Prompt } from '@/types/prompt';
+import { Json } from '@/integrations/supabase/types';
 
 const MyPrompts = () => {
   const navigate = useNavigate();
@@ -42,20 +43,65 @@ const MyPrompts = () => {
       
       if (error) throw error;
       
-      return data || [];
+      // Process the data to ensure it matches the Prompt interface
+      return (data || []).map(item => {
+        // Parse llm_settings if needed and ensure it has the expected structure
+        let llmSettings: { model: string; temperature?: number } = { model: 'Unknown' };
+        
+        if (item.llm_settings) {
+          // Handle different possible types of llm_settings
+          if (typeof item.llm_settings === 'string') {
+            try {
+              // If it's a string, try to parse it as JSON
+              const parsed = JSON.parse(item.llm_settings);
+              llmSettings = { 
+                model: parsed.model || 'Unknown',
+                temperature: parsed.temperature
+              };
+            } catch (e) {
+              console.error('Error parsing llm_settings string:', e);
+            }
+          } else if (typeof item.llm_settings === 'object') {
+            // If it's already an object, ensure it has the model property
+            const settings = item.llm_settings as Json;
+            if (typeof settings === 'object' && settings !== null && !Array.isArray(settings) && 'model' in settings) {
+              llmSettings = { 
+                model: String(settings.model),
+                temperature: typeof settings.temperature === 'number' ? settings.temperature : undefined
+              };
+            }
+          }
+        }
+
+        // Return a properly typed Prompt object
+        return {
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          description: '', // Add a default empty string for description
+          llm_settings: llmSettings,
+          user_id: item.user_id || '',
+          created_at: item.created_at || new Date().toISOString(),
+          is_public: item.is_public || false,
+          is_shared: false
+        } as Prompt;
+      });
     },
     // Only run this query if user is logged in
     enabled: !!user && !isAnonymous,
     // Cache for 5 minutes
     staleTime: 1000 * 60 * 5,
     // Retry 3 times before considering an error
-    retry: 3,
-    // Show error toast automatically
-    onError: (err: any) => {
-      console.error('Error fetching prompts:', err);
+    retry: 3
+  });
+
+  // Properly handle errors from React Query
+  useEffect(() => {
+    if (error) {
+      console.error('Error fetching prompts:', error);
       toast.error('Failed to load your prompts');
     }
-  });
+  }, [error]);
 
   const handleCreatePrompt = () => {
     navigate('/create-prompt');
@@ -147,33 +193,19 @@ const MyPrompts = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {prompts.map((prompt: Prompt) => {
-                  // Extract model from llm_settings safely
-                  let modelName = "Unknown";
-                  try {
-                    if (prompt.llm_settings && typeof prompt.llm_settings === 'object') {
-                      // Type assertion for safety
-                      const settings = prompt.llm_settings as { model?: string };
-                      modelName = settings.model || "Unknown";
-                    }
-                  } catch (e) {
-                    console.error("Error parsing llm_settings:", e);
-                  }
-                  
-                  return (
-                    <PromptCard
-                      key={prompt.id}
-                      id={prompt.id}
-                      title={prompt.title}
-                      description={prompt.content}
-                      llm={modelName}
-                      useCase="General"
-                      upvotes={0}
-                      author="You"
-                      showViewButton={true}
-                    />
-                  );
-                })}
+                {prompts.map((prompt: Prompt) => (
+                  <PromptCard
+                    key={prompt.id}
+                    id={prompt.id}
+                    title={prompt.title}
+                    description={prompt.content}
+                    llm={prompt.llm_settings.model}
+                    useCase="General"
+                    upvotes={0}
+                    author="You"
+                    showViewButton={true}
+                  />
+                ))}
               </div>
             )}
           </TabsContent>

@@ -72,9 +72,11 @@ const CollectionsList: React.FC<CollectionsListProps> = ({ onCollectionClick }) 
     enabled: !!user && !isAnonymous,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     retry: 3,
-    onError: (error: any) => {
-      console.error('Error fetching collections:', error);
-      toast.error(`Failed to load collections: ${error.message}`);
+    meta: {
+      onError: (error: any) => {
+        console.error('Error fetching collections:', error);
+        toast.error(`Failed to load collections: ${error.message}`);
+      }
     }
   });
 
