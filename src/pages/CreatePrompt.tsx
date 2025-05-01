@@ -51,6 +51,7 @@ const formSchema = z.object({
   model: z.string().min(1, {
     message: "Please select a model.",
   }),
+  customModel: z.string().optional(),
   temperature: z.coerce.number().min(0).max(2),
   isPublic: z.boolean().default(false),
 });
@@ -59,15 +60,22 @@ interface CreatePromptProps {
   isEditing?: boolean;
 }
 
+// Enhanced list of models
 const LLM_MODELS = [
   "gpt-4",
+  "gpt-4o",
   "gpt-3.5-turbo",
-  "claude-2",
-  "claude-instant",
+  "claude-3-opus",
+  "claude-3-sonnet",
+  "claude-3-haiku",
   "gemini-pro",
+  "gemini-ultra",
   "llama-2",
+  "llama-3",
   "mistral-medium",
+  "mistral-large",
   "mixtral-8x7b",
+  "other"
 ];
 
 const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
@@ -77,6 +85,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [promptData, setPromptData] = useState<Prompt | null>(null);
   const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
+  const [selectedModel, setSelectedModel] = useState("gpt-4");
   
   // Initialize form with default values
   const form = useForm<z.infer<typeof formSchema>>({
@@ -86,10 +95,22 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
       description: "",
       content: "",
       model: "gpt-4",
+      customModel: "",
       temperature: 0.7,
       isPublic: false,
     },
   });
+  
+  // Handle model selection change
+  const handleModelChange = (value: string) => {
+    setSelectedModel(value);
+    form.setValue('model', value);
+    
+    // Clear custom model field if not "other"
+    if (value !== "other") {
+      form.setValue('customModel', "");
+    }
+  };
   
   // Fetch prompt data if in edit mode
   useEffect(() => {
@@ -129,13 +150,22 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
       // Extract llm_settings safely
       let model = "gpt-4";
       let temperature = 0.7;
+      let customModel = "";
       
       if (promptData.llm_settings) {
         try {
           if (typeof promptData.llm_settings === 'object') {
             // Using type assertion here since we've verified it's an object
-            const settings = promptData.llm_settings as { model?: string; temperature?: number };
-            model = settings.model || "gpt-4";
+            const settings = promptData.llm_settings as { model?: string; temperature?: number; customModel?: string };
+            
+            // Check if model is in our list, if not set to "other" and store in customModel
+            if (settings.model && !LLM_MODELS.includes(settings.model)) {
+              model = "other";
+              customModel = settings.model;
+            } else {
+              model = settings.model || "gpt-4";
+            }
+            
             temperature = settings.temperature || 0.7;
           }
         } catch (e) {
@@ -143,12 +173,15 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
         }
       }
       
+      setSelectedModel(model);
+      
       // Update form values
       form.reset({
         title: promptData.title || "",
         description: promptData.description || "",
         content: promptData.content || "",
         model: model,
+        customModel: customModel,
         temperature: temperature,
         isPublic: promptData.is_public || false,
       });
@@ -174,8 +207,13 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
     try {
       setIsLoading(true);
       
+      // Determine the actual model to save
+      const actualModel = values.model === "other" && values.customModel 
+        ? values.customModel.trim() 
+        : values.model;
+      
       const llm_settings = {
-        model: values.model,
+        model: actualModel,
         temperature: values.temperature
       };
       
@@ -301,7 +339,9 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
           <div className="md:col-span-2">
             <Card className="shadow-md hover:shadow-lg transition-all border-0 overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 border-b">
-                <CardTitle>{isEditing ? 'Edit Prompt' : 'Prompt Details'}</CardTitle>
+                <CardTitle>
+                  {isEditing ? 'Edit Prompt' : 'Prompt Details'}
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <Form {...form}>
@@ -311,7 +351,9 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                       name="title"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Title</FormLabel>
+                          <FormLabel>
+                            Title
+                          </FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="E.g. GPT-4 Email Writer" 
@@ -335,7 +377,9 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                       name="content"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Prompt Content</FormLabel>
+                          <FormLabel>
+                            Prompt Content
+                          </FormLabel>
                           <FormControl>
                             <Textarea 
                               placeholder="Write your prompt content here..." 
@@ -358,7 +402,9 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Description (Optional)</FormLabel>
+                          <FormLabel>
+                            Description (Optional)
+                          </FormLabel>
                           <FormControl>
                             <Textarea 
                               placeholder="Briefly describe what this prompt does" 
@@ -382,10 +428,12 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                         name="model"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Model</FormLabel>
+                            <FormLabel>
+                              Model
+                            </FormLabel>
                             <Select 
-                              onValueChange={field.onChange} 
-                              defaultValue={field.value}
+                              onValueChange={(value) => handleModelChange(value)} 
+                              value={selectedModel}
                               disabled={isLoading}
                             >
                               <FormControl>
@@ -396,7 +444,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                               <SelectContent>
                                 {LLM_MODELS.map((model) => (
                                   <SelectItem key={model} value={model}>
-                                    {model}
+                                    {model === "other" ? "Other (custom)" : model}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -409,12 +457,41 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                         )}
                       />
                       
+                      {selectedModel === "other" && (
+                        <FormField
+                          control={form.control}
+                          name="customModel"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Custom Model Name
+                              </FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Enter custom model name" 
+                                  {...field} 
+                                  disabled={isLoading}
+                                  className="border-gray-300 focus:border-promptflow-purple focus:ring-promptflow-purple"
+                                  aria-label="Custom model name"
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Specify the name of your custom model
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                      
                       <FormField
                         control={form.control}
                         name="temperature"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Temperature ({field.value})</FormLabel>
+                            <FormLabel>
+                              Temperature ({field.value})
+                            </FormLabel>
                             <FormControl>
                               <Input 
                                 type="range" 
@@ -451,7 +528,9 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Make this prompt public</FormLabel>
+                            <FormLabel>
+                              Make this prompt public
+                            </FormLabel>
                             <FormDescription>
                               Public prompts can be discovered by other users in the Explore section
                             </FormDescription>
@@ -493,7 +572,9 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
           <div className="md:block">
             <Card className="shadow-md hover:shadow-lg transition-all border-0 overflow-hidden sticky top-4">
               <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 border-b">
-                <CardTitle>Prompt Tools</CardTitle>
+                <CardTitle>
+                  Prompt Tools
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
                 <Tabs defaultValue="optimize">
