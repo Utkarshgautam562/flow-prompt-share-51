@@ -8,5 +8,14 @@ Disallow: /auth/
 Disallow: /settings/
 Disallow: /api/
 
+# Allow all public pages for better visibility
+Allow: /explore
+Allow: /prompt/
+Allow: /create-prompt
+Allow: /terms
+Allow: /privacy
+Allow: /disclaimer
+Allow: /cookie-policy
+
 # Sitemap location
 Sitemap: https://promptnexis.com/sitemap.xml

@@ -33,8 +33,41 @@ export interface SearchFilters {
   sortBy?: string;
 }
 
-const LLM_MODELS = ["All Models", "GPT-4", "GPT-3.5", "Claude", "Gemini", "Mixtral", "Llama"];
-const USE_CASES = ["All Use Cases", "Marketing", "Coding", "Data Analysis", "Creative Writing", "Research"];
+// Enhanced list of models
+const LLM_MODELS = [
+  "All Models", 
+  "GPT-4o", 
+  "GPT-4", 
+  "GPT-3.5", 
+  "Claude 3 Opus", 
+  "Claude 3 Sonnet", 
+  "Claude 3 Haiku", 
+  "Gemini Pro", 
+  "Gemini Ultra", 
+  "Mixtral 8x7B", 
+  "Llama 2", 
+  "Llama 3", 
+  "Mistral Large", 
+  "Mistral Medium", 
+  "PaLM 2"
+];
+
+// Expanded use cases
+const USE_CASES = [
+  "All Use Cases", 
+  "Marketing", 
+  "Coding", 
+  "Data Analysis", 
+  "Creative Writing", 
+  "Research", 
+  "Education",
+  "Customer Support",
+  "Content Creation",
+  "Legal",
+  "Healthcare",
+  "Finance",
+  "Human Resources"
+];
 
 const SearchBar: React.FC<SearchBarProps> = ({ 
   onSearch = () => {}, 
@@ -96,20 +129,21 @@ const SearchBar: React.FC<SearchBarProps> = ({
   };
   
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full space-y-2" role="search" aria-label="Search prompts">
       <form onSubmit={handleSubmit} className="relative flex items-center">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={placeholder}
           className="pl-10 pr-28 h-12 bg-white rounded-lg border-gray-200 focus-visible:ring-promptflow-purple"
+          aria-label="Search input"
         />
         <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1">
-                <Filter size={14} />
+              <Button variant="outline" size="sm" className="h-8 gap-1" aria-label="Filter options">
+                <Filter size={14} aria-hidden="true" />
                 Filter
               </Button>
             </DropdownMenuTrigger>
@@ -161,6 +195,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             type="submit" 
             size="sm"
             className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90 h-8"
+            aria-label="Submit search"
           >
             Search
           </Button>
@@ -168,7 +203,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       </form>
       
       {activeFilters.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" aria-label="Active filters">
           {activeFilters.map((filter) => (
             <Badge 
               key={filter} 
@@ -180,6 +215,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 size={12} 
                 className="cursor-pointer ml-1" 
                 onClick={() => removeFilter(filter)}
+                aria-label={`Remove ${filter} filter`}
               />
             </Badge>
           ))}

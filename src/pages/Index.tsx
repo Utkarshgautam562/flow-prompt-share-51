@@ -1,6 +1,6 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet';
 import Navbar from '@/components/Navbar';
 import SearchBar, { SearchFilters } from '@/components/SearchBar';
 import PromptCard from '@/components/PromptCard';
@@ -78,6 +78,20 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Helmet>
+        <title>PromptNexis - Share and Discover AI Prompts for ChatGPT, Claude, and More</title>
+        <meta 
+          name="description" 
+          content="Create, share, organize, and discover high-quality AI prompts with PromptNexis. The ultimate platform for managing your AI prompts with team collaboration." 
+        />
+        <link rel="canonical" href="https://promptnexis.com/" />
+        <meta name="keywords" content="AI prompts, ChatGPT, GPT-4, Claude, Gemini, prompt library, prompt engineering, AI tools" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://promptnexis.com/" />
+        <meta property="og:title" content="PromptNexis - Share and Discover AI Prompts" />
+        <meta property="og:description" content="Create, share, organize, and discover high-quality AI prompts with PromptNexis." />
+      </Helmet>
+      
       <Navbar />
       
       {/* Hero Section */}
@@ -130,11 +144,11 @@ const Index = () => {
       </section>
       
       {/* Featured Prompts Section */}
-      <section className="py-16">
+      <section className="py-16" aria-labelledby="featured-prompts-heading">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col space-y-8">
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tight">Featured Prompts</h2>
+              <h2 id="featured-prompts-heading" className="text-3xl font-bold tracking-tight">Featured Prompts</h2>
               <p className="text-gray-500">
                 Discover high-quality prompts from the community
               </p>
@@ -159,10 +173,10 @@ const Index = () => {
       </section>
       
       {/* Features Section (Replaces Folder Structure) */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-gray-50" aria-labelledby="features-heading">
         <div className="container px-4 md:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight mb-3">
+            <h2 id="features-heading" className="text-3xl font-bold tracking-tight mb-3">
               Supercharge Your AI Prompt Workflow
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
@@ -174,9 +188,9 @@ const Index = () => {
             <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow">
               <CardHeader className="pb-2">
                 <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center mb-4">
-                  <Sparkles className="h-6 w-6 text-purple-600" />
+                  <Sparkles className="h-6 w-6 text-purple-600" aria-hidden="true" />
                 </div>
-                <CardTitle className="text-xl">Optimize Your Prompts</CardTitle>
+                <CardTitle>Optimize Your Prompts</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-500">
@@ -274,7 +288,7 @@ const Index = () => {
           <div className="flex flex-col space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div className="flex items-center space-x-2">
-                <div className="bg-gradient-to-r from-purple-600 to-blue-500 rounded-md w-8 h-8"></div>
+                <div className="bg-gradient-to-r from-purple-600 to-blue-500 rounded-md w-8 h-8" aria-hidden="true"></div>
                 <span className="text-xl font-bold">PromptNexis</span>
               </div>
               <div className="mt-6 md:mt-0">
@@ -285,12 +299,14 @@ const Index = () => {
             </div>
             
             {/* Legal Links */}
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
-              <Link to="/terms" className="hover:underline">Terms of Service</Link>
-              <Link to="/privacy" className="hover:underline">Privacy Policy</Link>
-              <Link to="/disclaimer" className="hover:underline">Disclaimer</Link>
-              <Link to="/cookie-policy" className="hover:underline">Cookie Policy</Link>
-            </div>
+            <nav aria-label="Legal links">
+              <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
+                <Link to="/terms" className="hover:underline">Terms of Service</Link>
+                <Link to="/privacy" className="hover:underline">Privacy Policy</Link>
+                <Link to="/disclaimer" className="hover:underline">Disclaimer</Link>
+                <Link to="/cookie-policy" className="hover:underline">Cookie Policy</Link>
+              </div>
+            </nav>
           </div>
         </div>
       </footer>

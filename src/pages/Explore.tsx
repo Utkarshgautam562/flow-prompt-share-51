@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Helmet } from 'react-helmet';
 import Navbar from '@/components/Navbar';
 import SearchBar, { SearchFilters } from '@/components/SearchBar';
 import PromptGrid from '@/components/explore/PromptGrid';
@@ -36,6 +37,52 @@ const Explore = () => {
     setFilters 
   } = usePromptSearch(initialQuery, initialFilters);
 
+  // Create a page title based on search parameters
+  const generatePageTitle = () => {
+    const parts = [];
+    
+    if (searchQuery) {
+      parts.push(`"${searchQuery}"`);
+    }
+    
+    if (filters.llmModel && filters.llmModel !== 'All Models') {
+      parts.push(filters.llmModel);
+    }
+    
+    if (filters.useCase && filters.useCase !== 'All Use Cases') {
+      parts.push(filters.useCase);
+    }
+    
+    if (parts.length > 0) {
+      return `${parts.join(' | ')} Prompts - PromptNexis`;
+    }
+    
+    return 'Explore AI Prompts - Find the Best Prompts for Any Task | PromptNexis';
+  };
+
+  // Generate meta description based on filters
+  const generateMetaDescription = () => {
+    if (searchQuery || filters.llmModel !== 'All Models' || filters.useCase !== 'All Use Cases') {
+      const parts = [];
+      
+      if (searchQuery) {
+        parts.push(`"${searchQuery}"`);
+      }
+      
+      if (filters.llmModel !== 'All Models') {
+        parts.push(`optimized for ${filters.llmModel}`);
+      }
+      
+      if (filters.useCase !== 'All Use Cases') {
+        parts.push(`for ${filters.useCase}`);
+      }
+      
+      return `Discover high-quality AI prompts ${parts.join(' ')}. Browse, filter, and use prompts from the PromptNexis community.`;
+    }
+    
+    return 'Explore thousands of AI prompts for ChatGPT, Claude, Gemini and more. Filter by model, use case, or popularity to find the perfect prompt for your needs.';
+  };
+
   // Handle search
   const handleSearch = (query: string, searchFilters: SearchFilters) => {
     setSearchQuery(query);
@@ -62,6 +109,17 @@ const Explore = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      <Helmet>
+        <title>{generatePageTitle()}</title>
+        <meta name="description" content={generateMetaDescription()} />
+        <link rel="canonical" href={`https://promptnexis.com${location.pathname}${location.search}`} />
+        <meta property="og:title" content={generatePageTitle()} />
+        <meta property="og:description" content={generateMetaDescription()} />
+        <meta property="og:url" content={`https://promptnexis.com${location.pathname}${location.search}`} />
+        <meta name="twitter:title" content={generatePageTitle()} />
+        <meta name="twitter:description" content={generateMetaDescription()} />
+      </Helmet>
+      
       <Navbar />
       
       <div className="container px-4 md:px-6 py-8">
