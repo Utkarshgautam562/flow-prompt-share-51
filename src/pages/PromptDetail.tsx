@@ -1,254 +1,279 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { useLikes } from '@/hooks/useLikes';
-import { Copy, Heart, Loader2, Edit, LinkIcon, Tag } from 'lucide-react';
+import { Copy, ThumbsUp, Edit, Trash2, Share } from 'lucide-react';
+import Navbar from '@/components/Navbar';
 import BackButton from '@/components/BackButton';
-import { Helmet } from 'react-helmet';
-import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
-import { Prompt } from '@/types/prompt';
+import { useLikes } from '@/hooks/useLikes';
 
 const PromptDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [prompt, setPrompt] = useState<Prompt | null>(null);
+  const { user } = useAuth();
+  const [prompt, setPrompt] = useState<any>(null);
+  const [author, setAuthor] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const { likesCount, isLiked, toggleLike } = useLikes(id || '');
-  const [collections, setCollections] = useState<{ id: string, name: string }[]>([]);
-
+  const { isLiked, likesCount, toggleLike } = useLikes(id || '');
+  
   useEffect(() => {
-    const fetchPrompt = async () => {
-      if (!id) return;
-      
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('prompts')
-          .select('*, profiles(username)')
-          .eq('id', id)
-          .single();
-          
-        if (error) throw error;
-        
-        // Transform data to handle nested profile info and provide default values for missing properties
-        const promptData: Prompt = {
-          ...data,
-          profiles: data.profiles as { username: string },
-          llm_settings: data.llm_settings as { model: string; temperature: number },
-          is_public: data.is_public || false,
-          is_shared: data.is_shared || false  // Set default value if missing
-        };
-        
-        setPrompt(promptData);
-
-        // Fetch collections this prompt belongs to
-        const { data: promptCollections, error: collectionsError } = await supabase
-          .from('prompt_collections')
-          .select('collection_id')
-          .eq('prompt_id', id);
-
-        if (collectionsError) throw collectionsError;
-
-        if (promptCollections && promptCollections.length > 0) {
-          const collectionIds = promptCollections.map(pc => pc.collection_id);
-          
-          const { data: collectionsData, error: collectionsDataError } = await supabase
-            .from('collections')
-            .select('id, name')
-            .in('id', collectionIds);
-
-          if (collectionsDataError) throw collectionsDataError;
-          
-          if (collectionsData) {
-            setCollections(collectionsData);
-          }
-        }
-      } catch (error: any) {
-        console.error('Error fetching prompt:', error);
-        toast.error("Failed to load prompt: " + error.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    if (!id) return;
     
-    fetchPrompt();
+    fetchPromptDetails();
   }, [id]);
   
-  const copyToClipboard = () => {
+  const fetchPromptDetails = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase
+        .from('prompts')
+        .select('*, profiles:user_id(*)')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      
+      if (!data) {
+        navigate('/not-found');
+        return;
+      }
+      
+      setPrompt(data);
+      setAuthor(data.profiles);
+    } catch (error: any) {
+      console.error('Error fetching prompt:', error);
+      toast.error('Failed to load prompt details');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const copyPromptToClipboard = () => {
     if (!prompt) return;
     
     navigator.clipboard.writeText(prompt.content);
-    setCopied(true);
-    toast.success("Copied to clipboard");
-    
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
+    toast.success('Prompt copied to clipboard');
   };
-
+  
   const sharePrompt = () => {
     if (!prompt) return;
     
-    const shareUrl = `${window.location.origin}/prompt/${id}`;
-    
+    const shareUrl = `${window.location.origin}/prompt/${prompt.id}`;
     navigator.clipboard.writeText(shareUrl);
-    toast.success("Link copied to clipboard!");
+    toast.success('Link copied to clipboard!');
   };
-
+  
+  const handleEditPrompt = () => {
+    if (!prompt) return;
+    navigate(`/edit-prompt/${prompt.id}`);
+  };
+  
+  const handleDeletePrompt = async () => {
+    if (!prompt || !window.confirm('Are you sure you want to delete this prompt?')) return;
+    
+    try {
+      // First delete all associations with collections
+      const { error: deleteAssociationsError } = await supabase
+        .from('prompt_collections')
+        .delete()
+        .eq('prompt_id', prompt.id);
+      
+      if (deleteAssociationsError) throw deleteAssociationsError;
+      
+      // Then delete all likes
+      const { error: deleteLikesError } = await supabase
+        .from('likes')
+        .delete()
+        .eq('prompt_id', prompt.id);
+      
+      if (deleteLikesError) throw deleteLikesError;
+      
+      // Finally delete the prompt
+      const { error } = await supabase
+        .from('prompts')
+        .delete()
+        .eq('id', prompt.id);
+      
+      if (error) throw error;
+      
+      toast.success('Prompt deleted successfully');
+      navigate('/my-prompts');
+    } catch (error: any) {
+      console.error('Error deleting prompt:', error);
+      toast.error(`Failed to delete prompt: ${error.message}`);
+    }
+  };
+  
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 size={32} className="animate-spin text-gray-500" />
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="container mx-auto py-8 px-4 md:px-6">
+          <div className="animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="h-10 bg-gray-200 rounded w-3/4 mb-6"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/3 mb-10"></div>
+            <div className="h-60 bg-gray-200 rounded mb-6"></div>
+          </div>
+        </div>
       </div>
     );
   }
   
   if (!prompt) {
     return (
-      <div className="container mx-auto py-12 px-4 text-center">
-        <h1 className="text-2xl font-bold mb-4">Prompt Not Found</h1>
-        <p className="text-gray-500 mb-6">
-          The prompt you're looking for doesn't exist or is not public.
-        </p>
-        <BackButton />
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="container mx-auto py-8 px-4 md:px-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-red-600">Prompt Not Found</h1>
+            <p className="mt-4 text-gray-500">The prompt you're looking for doesn't exist or has been removed.</p>
+            <Button onClick={() => navigate('/')} className="mt-6">
+              Back to Home
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
-
-  const isOwner = user && user.id === prompt.user_id;
-  const metaDescription = `${prompt.title} - A prompt optimized for ${prompt.llm_settings.model}`;
-
-  // Only display temperature badge if it's not the default value of 0.7
-  const shouldShowTemperature = prompt.llm_settings.temperature !== 0.7;
-
+  
+  // Extract model name from llm_settings
+  let modelName = "Unknown";
+  try {
+    if (prompt.llm_settings && typeof prompt.llm_settings === 'object') {
+      modelName = prompt.llm_settings.model || "Unknown";
+    }
+  } catch (e) {
+    console.error("Error parsing llm_settings:", e);
+  }
+  
+  const isAuthor = user && prompt.user_id === user.id;
+  
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <Helmet>
-        <title>{prompt.title} | PromptFlow</title>
-        <meta name="description" content={metaDescription} />
-        <meta property="og:title" content={`${prompt.title} | PromptFlow`} />
-        <meta property="og:description" content={metaDescription} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={window.location.href} />
-        <meta property="twitter:card" content="summary_large_image" />
-      </Helmet>
-      
-      <BackButton className="mb-4" to="/" />
-      
-      <Card className="shadow-md">
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-2xl font-bold">{prompt.title}</CardTitle>
-              <CardDescription className="mt-2">
-                by {prompt.profiles?.username || 'Anonymous'} • {new Date(prompt.created_at).toLocaleDateString()}
-              </CardDescription>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="container mx-auto py-8 px-4 md:px-6">
+        <div className="mb-6">
+          <BackButton />
+        </div>
+        
+        <Card className="mb-8 overflow-hidden border-0 shadow-md">
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 pb-8">
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100">
+                {modelName}
+              </Badge>
+              {prompt.is_public && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100">
+                  Public
+                </Badge>
+              )}
             </div>
-            <div className="flex gap-2">
-              {isOwner && (
+            <CardTitle className="text-2xl md:text-3xl font-bold">{prompt.title}</CardTitle>
+            {prompt.description && (
+              <CardDescription className="text-base mt-2">
+                {prompt.description}
+              </CardDescription>
+            )}
+          </CardHeader>
+          
+          <CardContent className="pt-6">
+            <div className="mb-8">
+              <h3 className="text-md font-medium text-gray-700 mb-3">Prompt Content</h3>
+              <div className="bg-gray-50 border rounded-lg p-4 md:p-6 relative">
+                <pre className="whitespace-pre-wrap text-sm md:text-base font-mono text-gray-800">{prompt.content}</pre>
                 <Button 
+                  onClick={copyPromptToClipboard}
                   variant="outline" 
                   size="sm" 
-                  onClick={() => navigate(`/edit-prompt/${id}`)}
-                  className="flex items-center gap-1"
+                  className="absolute top-2 right-2"
                 >
-                  <Edit size={16} />
-                  Edit
+                  <Copy size={16} />
+                  <span className="ml-1">Copy</span>
                 </Button>
+              </div>
+            </div>
+            
+            {/* Instructions and additional fields would go here */}
+          </CardContent>
+          
+          <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-6 border-t gap-4">
+            <div className="flex items-center gap-2">
+              {author && (
+                <>
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${author.username || author.id}`} />
+                    <AvatarFallback>{author.username ? author.username.substring(0, 2).toUpperCase() : 'UN'}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="text-sm font-medium">
+                      {author.username || 'Anonymous'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(prompt.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                </>
               )}
+            </div>
+            
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               <Button 
-                variant={copied ? "default" : "outline"} 
+                onClick={toggleLike}
+                variant={isLiked ? "secondary" : "outline"} 
                 size="sm" 
-                onClick={copyToClipboard}
-                className="flex items-center gap-1"
+                className={isLiked ? "gap-2 bg-pink-100 text-pink-600 hover:bg-pink-200 hover:text-pink-700" : "gap-2"}
               >
-                <Copy size={16} /> {copied ? 'Copied' : 'Copy'}
+                <ThumbsUp size={16} className={`${isLiked ? "fill-pink-600" : ""}`} />
+                <span>{likesCount}</span>
               </Button>
+              
               <Button 
+                onClick={sharePrompt}
                 variant="outline" 
                 size="sm" 
-                onClick={sharePrompt}
-                className="flex items-center gap-1"
+                className="gap-2"
               >
-                <LinkIcon size={16} /> Copy Link
+                <Share size={16} />
+                <span>Share</span>
               </Button>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="bg-blue-50 flex items-center gap-1 px-3 py-1">
-              <Tag size={12} />
-              {prompt.llm_settings.model || 'GPT-4'}
-            </Badge>
-            
-            {shouldShowTemperature && (
-              <Badge variant="outline" className="bg-blue-50 px-3 py-1">
-                Temperature: {prompt.llm_settings.temperature}
-              </Badge>
-            )}
-            
-            {collections.length > 0 && collections.map(collection => (
-              <HoverCard key={collection.id}>
-                <HoverCardTrigger asChild>
-                  <Badge 
+              
+              {isAuthor && (
+                <>
+                  <Button 
+                    onClick={handleEditPrompt}
                     variant="outline" 
-                    className="bg-green-50 flex items-center gap-1 px-3 py-1 cursor-pointer"
-                    onClick={() => navigate(`/collection/${collection.id}`)}
+                    size="sm" 
+                    className="gap-2"
                   >
-                    <Tag size={12} />
-                    {collection.name}
-                  </Badge>
-                </HoverCardTrigger>
-                <HoverCardContent className="w-64 p-2">
-                  <p className="text-sm">Click to view this collection</p>
-                </HoverCardContent>
-              </HoverCard>
-            ))}
-          </div>
-          
-          <Separator />
-          
-          <div>
-            <h3 className="font-semibold text-lg mb-3">Prompt</h3>
-            <div className="bg-gray-50 p-4 rounded-md whitespace-pre-wrap font-mono text-sm border border-gray-200">
-              {prompt.content}
+                    <Edit size={16} />
+                    <span>Edit</span>
+                  </Button>
+                  
+                  <Button 
+                    onClick={handleDeletePrompt}
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 size={16} />
+                    <span>Delete</span>
+                  </Button>
+                </>
+              )}
             </div>
-          </div>
-
-          {/* "How to Use This Prompt" section has been removed */}
-        </CardContent>
+          </CardFooter>
+        </Card>
         
-        <CardFooter className="flex justify-between items-center border-t pt-6">
-          <div className="text-sm text-gray-500">
-            Length: {prompt.content.length} characters
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant={isLiked ? "default" : "outline"} 
-              size="sm"
-              className={isLiked ? "bg-pink-100 text-pink-600 hover:bg-pink-200 hover:text-pink-700 flex items-center gap-1" : "flex items-center gap-1"}
-              onClick={toggleLike}
-            >
-              <Heart size={16} className={`${isLiked ? "fill-pink-600" : ""}`} /> 
-              {isLiked ? 'Liked' : 'Like'} ({likesCount})
-            </Button>
-            <Button variant="outline" size="sm" onClick={sharePrompt} className="flex items-center gap-1">
-              <Copy size={16} /> Copy Link
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
+        {/* Related prompts section would go here */}
+      </div>
     </div>
   );
 };

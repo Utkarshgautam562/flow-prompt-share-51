@@ -1,14 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import Navbar from '@/components/Navbar';
-import BackButton from '@/components/BackButton';
-import { Button } from '@/components/ui/button';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import {
   Form,
   FormControl,
@@ -18,8 +15,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -27,578 +22,476 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Copy, Sparkles, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
+import Navbar from '@/components/Navbar';
+import BackButton from '@/components/BackButton';
+import PromptOptimizer from '@/components/PromptOptimizer';
 import CollectionSelector from '@/components/collections/CollectionSelector';
-import { Helmet } from 'react-helmet';
 
-// Define the form schema
+// Form schema for validation
 const formSchema = z.object({
-  title: z.string().min(1, {
-    message: "Title is required",
+  title: z.string().min(3, {
+    message: "Title must be at least 3 characters.",
+  }).max(100, {
+    message: "Title must not exceed 100 characters.",
   }),
-  content: z.string().min(1, {
-    message: "Prompt content is required",
+  description: z.string().optional(),
+  content: z.string().min(10, {
+    message: "Prompt content must be at least 10 characters.",
   }),
-  model: z.string({
-    required_error: "Please select a model",
+  model: z.string().min(1, {
+    message: "Please select a model.",
   }),
-  customModel: z.string().optional(),
+  temperature: z.coerce.number().min(0).max(2),
   isPublic: z.boolean().default(false),
-  isShared: z.boolean().default(false),
 });
-
-// Available models
-const LLM_MODELS = ["GPT-4", "GPT-3.5", "Claude", "Gemini", "Mixtral", "Llama", "Other"];
-
-// Available tags (in a real app, these might be fetched from the database)
-const AVAILABLE_TAGS = [
-  "Marketing", "Coding", "Data Analysis", "Creative Writing", 
-  "Research", "Customer Support", "Legal", "Education", 
-  "Summarization", "Translation", "Brainstorming", "Academic"
-];
 
 interface CreatePromptProps {
   isEditing?: boolean;
 }
 
-const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
-  const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  const { user, isAnonymous } = useAuth();
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(isEditing);
-  const [showCustomModel, setShowCustomModel] = useState(false);
+const LLM_MODELS = [
+  "gpt-4",
+  "gpt-3.5-turbo",
+  "claude-2",
+  "claude-instant",
+  "gemini-pro",
+  "llama-2",
+  "mistral-medium",
+  "mixtral-8x7b",
+];
 
+const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user, isAnonymous } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [promptData, setPromptData] = useState<any>(null);
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
+  
+  // Initialize form with default values
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
+      description: "",
       content: "",
-      model: "GPT-4",
-      customModel: "",
+      model: "gpt-4",
+      temperature: 0.7,
       isPublic: false,
-      isShared: false,
     },
   });
-
-  // Fetch prompt data if editing
+  
+  // Fetch prompt data if in edit mode
   useEffect(() => {
-    const fetchPromptData = async () => {
-      if (isEditing && id) {
-        setIsLoading(true);
-        try {
-          if (isAnonymous) {
-            // Fetch from localStorage for anonymous users
-            const storedPromptsJson = localStorage.getItem('promptflow-anonymous-prompts');
-            if (storedPromptsJson) {
-              const storedPrompts = JSON.parse(storedPromptsJson);
-              const promptData = storedPrompts.find((p: any) => p.id === id);
-              
-              if (promptData) {
-                // Extract model from llm_settings safely
-                let modelValue = "GPT-4"; // Default value
-                let customModelValue = "";
-                
-                if (promptData.llm_settings) {
-                  const llmSettings = typeof promptData.llm_settings === 'string' 
-                    ? JSON.parse(promptData.llm_settings) 
-                    : promptData.llm_settings;
-                  
-                  if (llmSettings && typeof llmSettings === 'object' && 'model' in llmSettings) {
-                    const model = llmSettings.model || "GPT-4";
-                    
-                    if (LLM_MODELS.includes(model)) {
-                      modelValue = model;
-                    } else {
-                      modelValue = "Other";
-                      customModelValue = model;
-                      setShowCustomModel(true);
-                    }
-                  }
-                }
-                
-                form.reset({
-                  title: promptData.title || "",
-                  content: promptData.content || "",
-                  model: modelValue,
-                  customModel: customModelValue,
-                  isPublic: promptData.is_public || false,
-                  isShared: promptData.is_shared || false,
-                });
-                setSelectedTags(promptData.tags || []);
-              } else {
-                toast.error("Prompt not found");
-                navigate('/my-prompts');
-              }
-            }
-          } else {
-            // Fetch from Supabase
-            const { data, error } = await supabase
-              .from('prompts')
-              .select('*')
-              .eq('id', id)
-              .single();
-            
-            if (error) throw error;
-            
-            if (data) {
-              // Extract model from llm_settings safely
-              let modelValue = "GPT-4"; // Default value
-              let customModelValue = "";
-              
-              if (data.llm_settings) {
-                const llmSettings = typeof data.llm_settings === 'string'
-                  ? JSON.parse(data.llm_settings)
-                  : data.llm_settings;
-                
-                if (llmSettings && typeof llmSettings === 'object' && 'model' in llmSettings) {
-                  const model = String(llmSettings.model) || "GPT-4";
-                  
-                  if (LLM_MODELS.includes(model)) {
-                    modelValue = model;
-                  } else {
-                    modelValue = "Other";
-                    customModelValue = model;
-                    setShowCustomModel(true);
-                  }
-                }
-              }
-              
-              // Fix: Explicitly handle the case where is_shared might not exist in the database yet
-              // by providing a default value of false
-              const isShared = false; // Default to false if not present
-              
-              form.reset({
-                title: data.title || "",
-                content: data.content || "",
-                model: modelValue,
-                customModel: customModelValue,
-                isPublic: data.is_public || false,
-                isShared: isShared,
-              });
-
-              // Fetch collections for this prompt
-              const { data: promptCollections } = await supabase
-                .from('prompt_collections')
-                .select('collection_id')
-                .eq('prompt_id', id);
-
-              if (promptCollections && promptCollections.length > 0) {
-                setSelectedCollections(promptCollections.map(pc => pc.collection_id));
-              }
-              
-              // If you have tags stored, set them here
-              // setSelectedTags(data.tags || []);
-            } else {
-              toast.error("Prompt not found");
-              navigate('/my-prompts');
-            }
-          }
-        } catch (error: any) {
-          console.error('Error fetching prompt:', error);
-          toast.error("Failed to load prompt: " + (error.message || "Unknown error"));
-          navigate('/my-prompts');
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchPromptData();
-  }, [isEditing, id, form, navigate, isAnonymous]);
-
-  const handleModelChange = (value: string) => {
-    form.setValue('model', value);
-    setShowCustomModel(value === "Other");
-    if (value !== "Other") {
-      form.setValue('customModel', "");
+    if (isEditing && id) {
+      fetchPromptData(id);
     }
-  };
-
-  const handleTagSelect = (tag: string) => {
-    if (!selectedTags.includes(tag)) {
-      setSelectedTags([...selectedTags, tag]);
-    }
-  };
-
-  const removeTag = (tag: string) => {
-    setSelectedTags(selectedTags.filter(t => t !== tag));
-  };
-
-  const savePromptCollections = async (promptId: string, collectionIds: string[]) => {
-    if (isAnonymous || !user || collectionIds.length === 0) return;
-    
+  }, [isEditing, id]);
+  
+  const fetchPromptData = async (promptId: string) => {
     try {
-      // If editing, first delete existing associations
-      if (isEditing) {
-        const { error: deleteError } = await supabase
-          .from('prompt_collections')
-          .delete()
-          .eq('prompt_id', promptId);
-        
-        if (deleteError) throw deleteError;
-      }
+      setIsLoading(true);
       
-      // Create new associations
-      const promptCollections = collectionIds.map(collectionId => ({
-        prompt_id: promptId,
-        collection_id: collectionId
-      }));
-      
-      const { error } = await supabase
-        .from('prompt_collections')
-        .insert(promptCollections);
+      const { data, error } = await supabase
+        .from('prompts')
+        .select('*')
+        .eq('id', promptId)
+        .single();
       
       if (error) throw error;
+      
+      if (!data) {
+        navigate('/not-found');
+        return;
+      }
+      
+      // Verify user is the owner of this prompt
+      if (data.user_id !== user?.id) {
+        toast.error("You don't have permission to edit this prompt");
+        navigate('/my-prompts');
+        return;
+      }
+      
+      setPromptData(data);
+      
+      // Extract llm_settings safely
+      let model = "gpt-4";
+      let temperature = 0.7;
+      
+      if (data.llm_settings) {
+        try {
+          if (typeof data.llm_settings === 'object') {
+            model = data.llm_settings.model || "gpt-4";
+            temperature = data.llm_settings.temperature || 0.7;
+          }
+        } catch (e) {
+          console.error("Error parsing llm_settings:", e);
+        }
+      }
+      
+      // Update form values
+      form.reset({
+        title: data.title || "",
+        description: data.description || "",
+        content: data.content || "",
+        model: model,
+        temperature: temperature,
+        isPublic: data.is_public || false,
+      });
     } catch (error: any) {
-      console.error('Error saving prompt collections:', error);
-      // We don't want to block the whole save just because collections failed
-      toast.error(`Note: Failed to save collections. ${error.message}`);
+      console.error('Error fetching prompt:', error);
+      toast.error('Failed to load prompt data');
+    } finally {
+      setIsLoading(false);
     }
   };
-
+  
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (isAnonymous) {
-      toast.error("You need to sign in to create prompts");
-      navigate("/auth");
+      toast.error("You need to be signed in to save prompts");
       return;
     }
-
-    setIsSubmitting(true);
-
+    
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+    
     try {
-      // Determine the model to use
-      const modelToUse = values.model === "Other" ? values.customModel : values.model;
+      setIsLoading(true);
       
-      // Format the data for Supabase
-      const promptData = {
-        title: values.title,
-        content: values.content,
-        llm_settings: { 
-          model: modelToUse.toLowerCase(),
-          temperature: 0.7
-        },
-        is_public: values.isPublic,
-        is_shared: values.isShared,
-        user_id: user?.id,
-        // In a real implementation, tags would be stored in a separate table
-        // with a many-to-many relationship to prompts
+      const llm_settings = {
+        model: values.model,
+        temperature: values.temperature
       };
-
-      if (isEditing && id) {
+      
+      if (isEditing && promptData) {
         // Update existing prompt
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('prompts')
-          .update(promptData)
-          .eq('id', id)
-          .select();
-
+          .update({
+            title: values.title,
+            description: values.description,
+            content: values.content,
+            llm_settings,
+            is_public: values.isPublic,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', promptData.id);
+        
         if (error) throw error;
         
-        // Save collections for this prompt
-        if (data && data.length > 0) {
-          await savePromptCollections(id, selectedCollections);
-        }
-
-        toast.success("Prompt updated successfully!");
-        navigate(`/prompt/${id}`);
+        // Handle collections for edited prompt
+        await updatePromptCollections(promptData.id, selectedCollections);
+        
+        toast.success('Prompt updated successfully!');
       } else {
-        // Insert a new prompt
+        // Create new prompt
         const { data, error } = await supabase
           .from('prompts')
-          .insert([promptData])
+          .insert([
+            {
+              user_id: user.id,
+              title: values.title,
+              description: values.description,
+              content: values.content,
+              llm_settings,
+              is_public: values.isPublic
+            }
+          ])
           .select();
-
+        
         if (error) throw error;
         
-        // Save collections for this prompt
         if (data && data.length > 0) {
-          await savePromptCollections(data[0].id, selectedCollections);
+          // Add prompt to selected collections
+          await updatePromptCollections(data[0].id, selectedCollections);
+          
+          toast.success('Prompt created successfully!');
         }
-
-        toast.success("Prompt created successfully!");
-        navigate(`/prompt/${data[0].id}`);
       }
+      
+      // Navigate back to My Prompts
+      navigate('/my-prompts');
     } catch (error: any) {
       console.error('Error saving prompt:', error);
-      toast.error("Failed to save prompt. Please try again.");
+      toast.error(`Failed to save prompt: ${error.message}`);
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
-
-  const handleCopyContent = () => {
-    const content = form.getValues("content");
-    if (content) {
-      navigator.clipboard.writeText(content);
-      toast.success("Prompt content copied to clipboard!");
+  
+  const updatePromptCollections = async (promptId: string, collectionIds: string[]) => {
+    try {
+      // First, remove all existing associations
+      const { error: deleteError } = await supabase
+        .from('prompt_collections')
+        .delete()
+        .eq('prompt_id', promptId);
+      
+      if (deleteError) throw deleteError;
+      
+      // If there are selected collections, add new associations
+      if (collectionIds.length > 0) {
+        const collectionsToInsert = collectionIds.map(collectionId => ({
+          prompt_id: promptId,
+          collection_id: collectionId
+        }));
+        
+        const { error: insertError } = await supabase
+          .from('prompt_collections')
+          .insert(collectionsToInsert);
+        
+        if (insertError) throw insertError;
+      }
+    } catch (error) {
+      console.error('Error updating prompt collections:', error);
+      throw error; // Rethrow for the caller to handle
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <Navbar />
-        <div className="container flex items-center justify-center flex-1">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </div>
-    );
-  }
-
+  
+  const handleOptimizedContent = (optimizedContent: string) => {
+    form.setValue('content', optimizedContent);
+  };
+  
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <Helmet>
-        <title>{isEditing ? 'Edit Prompt' : 'Create Prompt'} | PromptFlow</title>
-        <meta name="description" content={isEditing ? 'Edit your existing prompt' : 'Create a new AI prompt'} />
-      </Helmet>
-      
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
-      <div className="container max-w-3xl px-4 md:px-6 py-8">
-        <div className="mb-4">
-          <BackButton to="/my-prompts" />
+      <div className="container mx-auto py-8 px-4 md:px-6">
+        <div className="mb-6">
+          <BackButton />
+          <h1 className="text-2xl font-bold mt-4">{isEditing ? 'Edit Prompt' : 'Create New Prompt'}</h1>
+          <p className="text-gray-500">
+            {isEditing 
+              ? 'Update your prompt details and content' 
+              : 'Create a new AI prompt to add to your collection'}
+          </p>
         </div>
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle className="text-2xl">{isEditing ? 'Edit Prompt' : 'Create a New Prompt'}</CardTitle>
-            <CardDescription>
-              {isEditing 
-                ? 'Update your prompt details below.' 
-                : 'Share your prompt with the community or keep it private for your own use.'}
-            </CardDescription>
-          </CardHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-              <CardContent className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base">Title</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="E.g., Creative Story Generator" 
-                          className="text-base py-6" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        A descriptive title for your prompt
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="content"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center justify-between">
-                        <FormLabel className="text-base">Prompt Content</FormLabel>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex items-center gap-1"
-                          onClick={handleCopyContent}
-                        >
-                          <Copy size={14} /> Copy
-                        </Button>
-                      </div>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Write your prompt here..." 
-                          className="h-64 font-mono text-sm"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        The instructions that will be sent to the AI model
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="model"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base">LLM Model</FormLabel>
-                      <Select onValueChange={handleModelChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a model" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {LLM_MODELS.map((model) => (
-                            <SelectItem key={model} value={model}>
-                              {model}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        The AI model this prompt is optimized for
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {showCustomModel && (
-                  <FormField
-                    control={form.control}
-                    name="customModel"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-base">Custom Model Name</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="E.g., Anthropic Claude-3" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Enter the name of the custom model
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                
-                <div className="space-y-2">
-                  <FormLabel className="text-base">Tags</FormLabel>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {selectedTags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="flex items-center gap-1 py-1 px-3">
-                        {tag}
-                        <X 
-                          size={12} 
-                          className="cursor-pointer ml-1" 
-                          onClick={() => removeTag(tag)}
-                        />
-                      </Badge>
-                    ))}
-                  </div>
-                  
-                  <Select onValueChange={handleTagSelect}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select tags" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AVAILABLE_TAGS.filter(tag => !selectedTags.includes(tag)).map((tag) => (
-                        <SelectItem key={tag} value={tag}>
-                          {tag}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Categories that describe your prompt (optional)
-                  </FormDescription>
-                </div>
-                
-                <div className="space-y-2">
-                  <FormLabel className="text-base">Collections</FormLabel>
-                  <CollectionSelector 
-                    selectedCollections={selectedCollections}
-                    onSelectCollections={setSelectedCollections}
-                    promptId={isEditing ? id : undefined}
-                  />
-                  <FormDescription>
-                    Add this prompt to collections for better organization (optional)
-                  </FormDescription>
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="isPublic"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <input
-                          type="checkbox"
-                          className="form-checkbox h-5 w-5 text-indigo-600"
-                          checked={field.value}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1">
-                        <FormLabel>Make this prompt public</FormLabel>
-                        <FormDescription>
-                          Public prompts will appear in Explore and can be used by others
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
 
-                <FormField
-                  control={form.control}
-                  name="isShared"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <input
-                          type="checkbox"
-                          className="form-checkbox h-5 w-5 text-indigo-600"
-                          checked={field.value}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1">
-                        <FormLabel>Enable sharing</FormLabel>
-                        <FormDescription>
-                          Allow this prompt to be shared via direct link
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>{isEditing ? 'Edit Prompt' : 'Prompt Details'}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="E.g. GPT-4 Email Writer" 
+                              {...field} 
+                              disabled={isLoading}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            A descriptive title for your prompt
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description (Optional)</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Briefly describe what this prompt does" 
+                              {...field} 
+                              disabled={isLoading}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            A short description to help others understand what this prompt does
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="model"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Model</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              defaultValue={field.value}
+                              disabled={isLoading}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a model" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {LLM_MODELS.map((model) => (
+                                  <SelectItem key={model} value={model}>
+                                    {model}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription>
+                              The AI model this prompt is designed for
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="temperature"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Temperature ({field.value})</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="range" 
+                                min="0" 
+                                max="2" 
+                                step="0.1"
+                                {...field}
+                                disabled={isLoading}
+                                className="w-full h-8"
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Lower values = more predictable, higher = more creative
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="content"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Prompt Content</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Write your prompt content here..." 
+                              {...field} 
+                              className="min-h-32 font-mono"
+                              disabled={isLoading}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            The actual prompt text that will be sent to the AI model
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="isPublic"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 border p-4 rounded-md">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={isLoading}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Make this prompt public</FormLabel>
+                            <FormDescription>
+                              Public prompts can be discovered by other users in the Explore section
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="border p-4 rounded-md">
+                      <h3 className="text-sm font-medium mb-2">Collections</h3>
+                      <CollectionSelector 
+                        selectedCollections={selectedCollections}
+                        onSelectCollections={setSelectedCollections}
+                        promptId={isEditing ? id : undefined}
+                      />
+                    </div>
+                    
+                    <Button 
+                      type="submit" 
+                      disabled={isLoading}
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 size={16} className="mr-2 animate-spin" />
+                          {isEditing ? 'Updating Prompt...' : 'Creating Prompt...'}
+                        </>
+                      ) : (
+                        isEditing ? 'Update Prompt' : 'Create Prompt'
+                      )}
+                    </Button>
+                  </form>
+                </Form>
               </CardContent>
-              
-              <CardFooter className="flex justify-between border-t pt-6">
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={() => navigate(-1)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting 
-                    ? (isEditing ? "Updating..." : "Creating...") 
-                    : (isEditing ? "Update Prompt" : "Create Prompt")
-                  }
-                </Button>
-              </CardFooter>
-            </form>
-          </Form>
-        </Card>
+            </Card>
+          </div>
+          
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Prompt Tools</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="optimize">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="optimize" className="flex-1">Optimize</TabsTrigger>
+                    <TabsTrigger value="examples" className="flex-1">Examples</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="optimize" className="pt-4">
+                    <PromptOptimizer 
+                      onOptimize={handleOptimizedContent}
+                      initialContent={form.getValues('content')}
+                    />
+                  </TabsContent>
+                  <TabsContent value="examples" className="pt-4">
+                    <div className="text-sm">
+                      <p className="mb-4">Good prompt examples for inspiration:</p>
+                      <ul className="space-y-2 list-disc pl-4">
+                        <li>Be specific about the format you want</li>
+                        <li>Include examples or templates</li>
+                        <li>Define the tone and style</li>
+                        <li>Specify any constraints or requirements</li>
+                      </ul>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

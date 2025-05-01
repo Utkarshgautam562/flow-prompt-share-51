@@ -1,220 +1,230 @@
 
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Checkbox } from '@/components/ui/checkbox';
-import UsernameDialog from '@/components/UsernameDialog';
+import { Loader2 } from 'lucide-react';
+import Navbar from '@/components/Navbar';
+import BackButton from '@/components/BackButton';
 
 const Auth = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
-  const [newUserId, setNewUserId] = useState<string | null>(null);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("signin");
   
-  // Redirect if already logged in
-  if (user) {
-    navigate('/');
-    return null;
-  }
-
-  const handleLogin = async (e: React.FormEvent) => {
+  // Form states
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [username, setUsername] = useState('');
+  
+  // Get the redirect path from location state or default to home
+  const from = location.state?.from || '/';
+  
+  useEffect(() => {
+    // If user is already logged in, redirect to the page they were trying to access
+    if (user) {
+      navigate(from);
+    }
+  }, [user, navigate, from]);
+  
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+    
     try {
+      setIsLoading(true);
       await signIn(email, password);
-      navigate('/');
+      toast.success('Signed in successfully');
+      navigate(from);
     } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || "Failed to sign in. Please check your credentials.");
+      console.error('Sign in error:', error);
+      toast.error(error.message || 'Failed to sign in');
     } finally {
       setIsLoading(false);
     }
   };
-
+  
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate username
-    if (!username.trim()) {
-      toast.error("Username is required");
+    if (!email || !password || !confirmPassword) {
+      toast.error('Please fill out all fields');
       return;
     }
     
-    // Check terms agreement
-    if (!agreedToTerms) {
-      toast.error("You must agree to the Terms and Privacy Policy");
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
     
-    setIsLoading(true);
     try {
-      // Call the signUp function and store the result
+      setIsLoading(true);
       await signUp(email, password, { username });
-      
-      // If we get here, signup was successful - create a user in database
-      const { data: userData } = await supabase.auth.getUser();
-      
-      if (userData?.user) {
-        setNewUserId(userData.user.id);
-        setIsUsernameDialogOpen(true);
-      }
-      
-      toast.success("Account created successfully. Please check your email for verification.");
+      toast.success('Account created successfully! Check your email for confirmation');
+      setActiveTab("signin");
     } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || "Failed to create account. Please try again.");
+      console.error('Sign up error:', error);
+      toast.error(error.message || 'Failed to create account');
     } finally {
       setIsLoading(false);
     }
   };
-
+  
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl">Welcome to PromptFlow</CardTitle>
-          <CardDescription>
-            Sign in or create an account to manage your prompts
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="example@email.com" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    required 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    placeholder="••••••••" 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full bg-gradient-to-r from-promptflow-purple to-promptflow-blue"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Signing In...' : 'Sign In'}
-                </Button>
-              </form>
-            </TabsContent>
-            <TabsContent value="register">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input 
-                    id="username" 
-                    type="text" 
-                    placeholder="Choose a unique username" 
-                    value={username} 
-                    onChange={(e) => setUsername(e.target.value)} 
-                    required 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="example@email.com" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    required 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    placeholder="••••••••" 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                  />
-                </div>
-                <div className="flex items-start space-x-2 mt-4">
-                  <Checkbox 
-                    id="terms" 
-                    className="mt-1"
-                    checked={agreedToTerms}
-                    onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
-                  />
-                  <div className="grid gap-1.5 leading-none">
-                    <label
-                      htmlFor="terms"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white">
+      <Navbar />
+      <div className="container mx-auto px-4 py-12">
+        <div className="mb-4">
+          <BackButton to="/" />
+        </div>
+        <div className="max-w-md mx-auto">
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="text-center space-y-1">
+              <CardTitle className="text-2xl">Welcome to PromptNexis</CardTitle>
+              <CardDescription>
+                Sign in to continue to your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="signin">Sign In</TabsTrigger>
+                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="signin">
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-email">Email</Label>
+                      <Input 
+                        id="signin-email" 
+                        type="email" 
+                        placeholder="email@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="signin-password">Password</Label>
+                        <a href="#" className="text-xs text-blue-600 hover:underline">
+                          Forgot password?
+                        </a>
+                      </div>
+                      <Input 
+                        id="signin-password" 
+                        type="password" 
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90"
+                      disabled={isLoading}
                     >
-                      I agree to the{" "}
-                      <Link to="/terms" className="text-promptflow-purple hover:underline" target="_blank">
-                        Terms of Service
-                      </Link>{" "}
-                      and{" "}
-                      <Link to="/privacy" className="text-promptflow-purple hover:underline" target="_blank">
-                        Privacy Policy
-                      </Link>
-                    </label>
-                  </div>
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full bg-gradient-to-r from-promptflow-purple to-promptflow-blue"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Creating Account...' : 'Create Account'}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-gray-500">
-            Manage your AI prompts with ease
-          </p>
-        </CardFooter>
-      </Card>
-      
-      {/* Username dialog after signup */}
-      {newUserId && (
-        <UsernameDialog 
-          isOpen={isUsernameDialogOpen} 
-          onClose={() => {
-            setIsUsernameDialogOpen(false);
-            navigate('/');
-          }}
-          userId={newUserId}
-        />
-      )}
+                      {isLoading ? (
+                        <>
+                          <Loader2 size={16} className="mr-2 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        'Sign In'
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+                
+                <TabsContent value="signup">
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-username">Username</Label>
+                      <Input 
+                        id="signup-username" 
+                        type="text" 
+                        placeholder="johndoe"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input 
+                        id="signup-email" 
+                        type="email" 
+                        placeholder="email@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <Input 
+                        id="signup-password" 
+                        type="password" 
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+                      <Input 
+                        id="signup-confirm-password" 
+                        type="password" 
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 size={16} className="mr-2 animate-spin" />
+                          Creating account...
+                        </>
+                      ) : (
+                        'Create Account'
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+            <CardFooter className="flex flex-col text-center text-sm text-gray-600">
+              <p>
+                By continuing, you agree to our 
+                <a href="/terms" className="text-blue-600 hover:underline"> Terms of Service </a> 
+                and 
+                <a href="/privacy" className="text-blue-600 hover:underline"> Privacy Policy</a>.
+              </p>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
