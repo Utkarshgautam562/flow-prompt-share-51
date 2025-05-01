@@ -65,7 +65,7 @@ const Navbar = () => {
               <img
                 src="/lovable-uploads/bd924504-e9e9-402c-a6f7-2ee8e99f01f2.png"
                 alt="PromptNexis Logo"
-                className="h-8 w-auto mr-2"
+                className="h-9 w-auto object-contain"
               />
             </Link>
             

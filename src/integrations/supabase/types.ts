@@ -132,6 +132,7 @@ export type Database = {
           llm_settings: Json
           search_vector: unknown | null
           title: string
+          updated_at: string | null
           user_id: string | null
         }
         Insert: {
@@ -143,6 +144,7 @@ export type Database = {
           llm_settings?: Json
           search_vector?: unknown | null
           title: string
+          updated_at?: string | null
           user_id?: string | null
         }
         Update: {
@@ -154,6 +156,7 @@ export type Database = {
           llm_settings?: Json
           search_vector?: unknown | null
           title?: string
+          updated_at?: string | null
           user_id?: string | null
         }
         Relationships: [
