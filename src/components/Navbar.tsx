@@ -61,11 +61,14 @@ const Navbar = () => {
         <div className="flex h-16 items-center justify-between">
           {/* Logo and Brand */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center">
+            <Link to="/" className="flex items-center logo-container h-12">
               <img
                 src="/lovable-uploads/bd924504-e9e9-402c-a6f7-2ee8e99f01f2.png"
                 alt="PromptNexis Logo"
-                className="h-9 w-auto object-contain"
+                width="150"
+                height="40"
+                className="h-auto max-h-full"
+                loading="lazy"
               />
             </Link>
             
@@ -114,6 +117,9 @@ const Navbar = () => {
                       }`}
                       alt="User Avatar" 
                       className="h-full w-full object-cover"
+                      loading="lazy"
+                      width="36"
+                      height="36"
                     />
                   </Button>
                 </DropdownMenuTrigger>
@@ -181,6 +187,17 @@ const Navbar = () => {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 space-y-2">
+            {/* Mobile Logo */}
+            <div className="px-3 py-2 logo-container h-10 flex items-center">
+              <img
+                src="/lovable-uploads/bd924504-e9e9-402c-a6f7-2ee8e99f01f2.png"
+                alt="PromptNexis Logo"
+                width="120"
+                height="32"
+                className="h-auto max-h-full"
+                loading="lazy"
+              />
+            </div>
             <Link to="/" className="block px-3 py-2 text-base font-medium hover:bg-slate-50 rounded-md">
               Home
             </Link>
