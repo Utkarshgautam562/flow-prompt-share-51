@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -175,7 +176,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                 }
               }
               
-              // Use optional chaining to safely access is_shared property
+              // Provide a default value for is_shared since it might not exist in the database yet
               const isShared = data.is_shared ?? false;
               
               form.reset({
