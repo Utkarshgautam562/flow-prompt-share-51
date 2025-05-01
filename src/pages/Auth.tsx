@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
+import UsernameDialog from '@/components/UsernameDialog';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -16,6 +17,8 @@ const Auth = () => {
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
+  const [newUserId, setNewUserId] = useState<string | null>(null);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   
@@ -56,7 +59,16 @@ const Auth = () => {
     
     setIsLoading(true);
     try {
-      await signUp(email, password, { username });
+      const { data, error } = await signUp(email, password, { username });
+      
+      if (error) throw error;
+      
+      // Open username dialog if signup was successful
+      if (data?.user) {
+        setNewUserId(data.user.id);
+        setIsUsernameDialogOpen(true);
+      }
+      
       toast.success("Account created successfully. Please check your email for verification.");
     } catch (error: any) {
       console.error(error);
@@ -189,6 +201,18 @@ const Auth = () => {
           </p>
         </CardFooter>
       </Card>
+      
+      {/* Username dialog after signup */}
+      {newUserId && (
+        <UsernameDialog 
+          isOpen={isUsernameDialogOpen} 
+          onClose={() => {
+            setIsUsernameDialogOpen(false);
+            navigate('/');
+          }}
+          userId={newUserId}
+        />
+      )}
     </div>
   );
 };

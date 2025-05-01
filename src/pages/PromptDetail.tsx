@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useLikes } from '@/hooks/useLikes';
-import { Copy, Heart, Share2, Loader2, Edit, LinkIcon, Tag } from 'lucide-react';
+import { Copy, Heart, Loader2, Edit, LinkIcon, Tag } from 'lucide-react';
 import BackButton from '@/components/BackButton';
 import { Helmet } from 'react-helmet';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
@@ -45,7 +45,7 @@ const PromptDetail = () => {
           profiles: data.profiles as { username: string },
           llm_settings: data.llm_settings as { model: string; temperature: number },
           is_public: data.is_public || false,
-          is_shared: false  // Default value since it may not exist in the database yet
+          is_shared: data.is_shared || false  // Default value since it may not exist in the database yet
         };
         
         setPrompt(promptData);
@@ -170,16 +170,14 @@ const PromptDetail = () => {
               >
                 <Copy size={16} /> {copied ? 'Copied' : 'Copy'}
               </Button>
-              {prompt.is_shared && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={sharePrompt}
-                  className="flex items-center gap-1"
-                >
-                  <LinkIcon size={16} /> Share
-                </Button>
-              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={sharePrompt}
+                className="flex items-center gap-1"
+              >
+                <LinkIcon size={16} /> Copy Link
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -248,7 +246,7 @@ const PromptDetail = () => {
               {isLiked ? 'Liked' : 'Like'} ({likesCount})
             </Button>
             <Button variant="outline" size="sm" onClick={sharePrompt} className="flex items-center gap-1">
-              <Share2 size={16} /> Copy Link
+              <Copy size={16} /> Copy Link
             </Button>
           </div>
         </CardFooter>

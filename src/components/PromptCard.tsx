@@ -11,7 +11,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Share2, Eye } from 'lucide-react';
+import { Sparkles, Copy, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLikes } from '@/hooks/useLikes';
 
@@ -44,7 +44,7 @@ const PromptCard: React.FC<PromptCardProps> = ({
     navigate(`/prompt/${id}`);
   };
 
-  const handleShare = (e: React.MouseEvent) => {
+  const handleShareClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     const shareUrl = `${window.location.origin}/prompt/${id}`;
     navigator.clipboard.writeText(shareUrl);
@@ -78,10 +78,10 @@ const PromptCard: React.FC<PromptCardProps> = ({
 
   return (
     <Card 
-      className={`overflow-hidden transition-all duration-200 ${isHovered ? 'shadow-lg' : 'shadow-sm'} hover:shadow-lg hover:-translate-y-1`}
+      className={`overflow-hidden transition-all duration-200 ${isHovered ? 'shadow-lg' : 'shadow-sm'} hover:shadow-lg hover:-translate-y-1 cursor-pointer`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={showViewButton ? handleViewClick : undefined}
+      onClick={handleViewClick}
     >
       <CardHeader className="p-4 pb-0">
         <div className="flex justify-between items-start">
@@ -117,19 +117,22 @@ const PromptCard: React.FC<PromptCardProps> = ({
           {showViewButton ? (
             <>
               <Button 
-                onClick={handleShare}
+                onClick={handleShareClick}
                 variant="ghost" 
                 size="sm" 
                 className="h-8 w-8 p-0"
               >
-                <Share2 size={16} />
-                <span className="sr-only">Share</span>
+                <Copy size={16} />
+                <span className="sr-only">Copy Link</span>
               </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 className="h-8 w-8 p-0"
-                onClick={handleViewClick}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewClick();
+                }}
               >
                 <Eye size={16} />
                 <span className="sr-only">View</span>
@@ -147,13 +150,13 @@ const PromptCard: React.FC<PromptCardProps> = ({
                 <span>{likesCount}</span>
               </Button>
               <Button 
-                onClick={handleShare}
+                onClick={handleShareClick}
                 variant="ghost" 
                 size="sm" 
                 className="h-8 w-8 p-0"
               >
-                <Share2 size={16} />
-                <span className="sr-only">Share</span>
+                <Copy size={16} />
+                <span className="sr-only">Copy Link</span>
               </Button>
             </>
           )}

@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { FolderOpen, LinkIcon } from 'lucide-react';
+import { FolderOpen, LinkIcon, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import PromptCard from '../PromptCard';
 import { Button } from '@/components/ui/button';
@@ -192,7 +191,7 @@ const SharedCollectionView = () => {
               toast.success("Collection link copied to clipboard!");
             }}
           >
-            <LinkIcon size={16} />
+            <Copy size={16} />
             Copy Collection Link
           </Button>
         </div>

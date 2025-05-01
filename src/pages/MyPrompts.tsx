@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Plus, Sparkles, Shield, Eye, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, Plus, Sparkles, Shield, Eye, ChevronRight, Edit } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PromptOptimizer from '@/components/PromptOptimizer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import PromptCard from '@/components/PromptCard';
 import CollectionsList from '@/components/collections/CollectionsList';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarInset } from '@/components/ui/sidebar';
+import Separator from '@/components/ui/separator';
 
 interface Prompt {
   id: string;
@@ -261,133 +261,169 @@ const MyPrompts = () => {
         </div>
       </div>
       
-      <SidebarProvider>
-        <div className="flex min-h-[500px] w-full">
-          <Sidebar collapsible="icon">
-            <SidebarContent>
-              <Tabs defaultValue="all" className="w-full">
-                <TabsList className="w-full mb-4">
-                  <TabsTrigger 
-                    value="all" 
-                    className="flex-1"
-                    onClick={() => setActiveView('all')}
+      <div className="flex gap-6">
+        {/* Sidebar for Collections */}
+        <div className="hidden md:block w-64 shrink-0">
+          <Card className="sticky top-4">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Collections</CardTitle>
+            </CardHeader>
+            <CardContent className="px-2">
+              <div className="space-y-1">
+                <Button 
+                  variant={activeView === 'all' ? 'secondary' : 'ghost'} 
+                  className="w-full justify-start"
+                  onClick={() => setActiveView('all')}
+                >
+                  All Prompts
+                </Button>
+                <Separator className="my-2" />
+                <CollectionsList onCollectionClick={handleCollectionClick} />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Main Content Area */}
+        <div className="flex-1">
+          {/* Mobile Collections Toggle */}
+          <div className="block md:hidden mb-4">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  {activeView === 'all' ? 'All Prompts' : 'Collection View'}
+                  <ChevronRight size={16} className="rotate-90" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[50vh]">
+                <SheetHeader>
+                  <SheetTitle>Collections</SheetTitle>
+                </SheetHeader>
+                <div className="mt-4 space-y-2">
+                  <Button 
+                    variant={activeView === 'all' ? 'secondary' : 'ghost'} 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setActiveView('all');
+                      document.querySelector('[data-radix-collection-item]')?.closest('div[data-state="open"]')?.dispatchEvent(new Event('close'));
+                    }}
                   >
                     All Prompts
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="collections" 
-                    className="flex-1"
-                  >
-                    Collections
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="all" className="space-y-4">
-                  <div className="text-sm text-muted-foreground">
-                    All your saved prompts
-                  </div>
-                </TabsContent>
-                <TabsContent value="collections">
-                  <CollectionsList onCollectionClick={handleCollectionClick} />
-                </TabsContent>
-              </Tabs>
-            </SidebarContent>
-          </Sidebar>
+                  </Button>
+                  <Separator className="my-2" />
+                  <CollectionsList 
+                    onCollectionClick={(id) => {
+                      handleCollectionClick(id);
+                      document.querySelector('[data-radix-collection-item]')?.closest('div[data-state="open"]')?.dispatchEvent(new Event('close'));
+                    }} 
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {activeView === 'collection' && activeCollectionId && (
+            <div className="mb-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setActiveView('all')}
+                className="flex items-center gap-1"
+              >
+                <ChevronRight size={16} className="rotate-180" />
+                <span>Back to all prompts</span>
+              </Button>
+            </div>
+          )}
           
-          <SidebarInset className="overflow-auto">
-            {activeView === 'collection' && activeCollectionId && (
-              <div className="mb-4">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setActiveView('all')}
-                  className="flex items-center gap-1"
-                >
-                  <ChevronRight size={16} className="rotate-180" />
-                  <span>Back to all prompts</span>
-                </Button>
-              </div>
-            )}
-            
-            {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-48 bg-gray-100 rounded-lg animate-pulse"></div>
-                ))}
-              </div>
-            ) : displayPrompts.length === 0 ? (
-              <Card className="text-center p-8 bg-gradient-to-br from-gray-50 to-blue-50 border-dashed border-2 border-blue-200">
-                <CardContent className="pt-6 text-center py-10">
-                  <img 
-                    src="https://api.dicebear.com/7.x/shapes/svg?seed=empty-prompts" 
-                    alt="No prompts" 
-                    className="w-32 h-32 mx-auto mb-6 opacity-70"
-                  />
-                  <p className="text-gray-500 mb-6 text-lg">
-                    {isAnonymous ? 
-                      "You haven't created any prompts in anonymous mode yet." : 
-                      activeView === 'collection' ? 
-                        "No prompts in this collection yet." :
-                        "You haven't created any prompts yet."}
-                  </p>
-                  <p className="text-gray-500 mb-6">
-                    {activeView === 'collection' ? 
-                      "Add prompts to this collection when creating or editing a prompt." :
-                      "Start creating prompts to enhance your AI interactions!"}
-                  </p>
-                  {activeView !== 'collection' && (
-                    <Button 
-                      onClick={createNewPrompt}
-                      className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
-                    >
-                      <Plus size={16} className="mr-2" /> Create your first prompt
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ) : viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {displayPrompts.map((prompt) => (
-                  <PromptCard 
-                    key={prompt.id}
-                    id={prompt.id}
-                    title={prompt.title}
-                    description={prompt.content}
-                    llm="AI" // This could be replaced with actual LLM data if available
-                    useCase={prompt.is_public ? "Public" : "Private"}
-                    upvotes={0}
-                    author={user?.email || "You"}
-                    showViewButton={true}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Card className="shadow-sm border-blue-100">
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
-                      <TableRow>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {displayPrompts.map((prompt) => (
-                        <TableRow key={prompt.id} className="hover:bg-blue-50/30">
-                          <TableCell className="font-medium">{prompt.title}</TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 text-xs rounded-full ${prompt.is_public ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                              {prompt.is_public ? 'Public' : 'Private'}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-48 bg-gray-100 rounded-lg animate-pulse"></div>
+              ))}
+            </div>
+          ) : displayPrompts.length === 0 ? (
+            <Card className="text-center p-8 bg-gradient-to-br from-gray-50 to-blue-50 border-dashed border-2 border-blue-200">
+              <CardContent className="pt-6 text-center py-10">
+                <img 
+                  src="https://api.dicebear.com/7.x/shapes/svg?seed=empty-prompts" 
+                  alt="No prompts" 
+                  className="w-32 h-32 mx-auto mb-6 opacity-70"
+                />
+                <p className="text-gray-500 mb-6 text-lg">
+                  {isAnonymous ? 
+                    "You haven't created any prompts in anonymous mode yet." : 
+                    activeView === 'collection' ? 
+                      "No prompts in this collection yet." :
+                      "You haven't created any prompts yet."}
+                </p>
+                <p className="text-gray-500 mb-6">
+                  {activeView === 'collection' ? 
+                    "Add prompts to this collection when creating or editing a prompt." :
+                    "Start creating prompts to enhance your AI interactions!"}
+                </p>
+                {activeView !== 'collection' && (
+                  <Button 
+                    onClick={createNewPrompt}
+                    className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
+                  >
+                    <Plus size={16} className="mr-2" /> Create your first prompt
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+              {displayPrompts.map((prompt) => (
+                <PromptCard 
+                  key={prompt.id}
+                  id={prompt.id}
+                  title={prompt.title}
+                  description={prompt.content}
+                  llm="AI" // This could be replaced with actual LLM data if available
+                  useCase={prompt.is_public ? "Public" : "Private"}
+                  upvotes={0}
+                  author={user?.email || "You"}
+                  showViewButton={true}
+                />
+              ))}
+            </div>
+          ) : (
+            <Card className="shadow-sm border-blue-100">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead className="hidden md:table-cell">Status</TableHead>
+                      <TableHead className="hidden md:table-cell">Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {displayPrompts.map((prompt) => (
+                      <TableRow key={prompt.id} className="hover:bg-blue-50/30">
+                        <TableCell className="font-medium">
+                          <div 
+                            className="cursor-pointer hover:text-blue-600 hover:underline" 
+                            onClick={() => viewPrompt(prompt.id)}
+                          >
+                            {prompt.title}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <span className={`px-2 py-1 text-xs rounded-full ${prompt.is_public ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                            {prompt.is_public ? 'Public' : 'Private'}
+                          </span>
+                          {isAnonymous && (
+                            <span className="ml-2 px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                              Local
                             </span>
-                            {isAnonymous && (
-                              <span className="ml-2 px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
-                                Local
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>{new Date(prompt.created_at).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-right">
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">{new Date(prompt.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
                             <Button 
                               variant="ghost" 
                               size="sm" 
@@ -402,7 +438,7 @@ const MyPrompts = () => {
                               onClick={() => editPrompt(prompt.id)}
                               className="h-8 w-8"
                             >
-                              <Pencil size={16} />
+                              <Edit size={16} />
                             </Button>
                             <Button 
                               variant="ghost" 
@@ -412,17 +448,17 @@ const MyPrompts = () => {
                             >
                               <Trash2 size={16} />
                             </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            )}
-          </SidebarInset>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </div>
-      </SidebarProvider>
+      </div>
 
       {/* Privacy Settings Sheet */}
       <Sheet open={isPrivacySheetOpen} onOpenChange={setIsPrivacySheetOpen}>
@@ -482,4 +518,3 @@ const MyPrompts = () => {
 };
 
 export default MyPrompts;
-
