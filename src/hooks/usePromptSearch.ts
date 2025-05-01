@@ -99,7 +99,7 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
           user_id: item.user_id || '',
           created_at: item.created_at || new Date().toISOString(),
           is_public: item.is_public || false,
-          is_shared: item.is_shared || false,
+          is_shared: false, // Default value since it's not in the database
           profiles: item.profiles as { username: string } | undefined
         } satisfies Prompt;
       });
