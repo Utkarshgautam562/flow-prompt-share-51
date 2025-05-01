@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
@@ -267,10 +268,23 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
     form.setValue('content', optimizedContent);
   };
   
+  // SEO-friendly title and description
+  const pageTitle = isEditing ? 'Edit AI Prompt - PromptNexis' : 'Create New AI Prompt - PromptNexis';
+  const pageDescription = isEditing 
+    ? 'Enhance and modify your existing AI prompt with our advanced editor. Update, refine, and optimize your AI prompts for better results.'
+    : 'Create a new AI prompt using our advanced editor. Craft effective prompts for GPT-4, Claude, and other AI models with our optimization tools.';
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="keywords" content="create AI prompt, prompt engineering, GPT-4 prompts, AI writing, prompt templates" />
+        <link rel="canonical" href={`https://promptnexis.com/${isEditing ? `edit-prompt/${id}` : 'create-prompt'}`} />
+      </Helmet>
+      
       <Navbar />
-      <div className="container mx-auto py-8 px-4 md:px-6 animate-fade-in">
+      <main className="container mx-auto py-8 px-4 md:px-6 animate-fade-in">
         <div className="mb-6">
           <BackButton />
           <h1 className="text-2xl font-bold mt-4 text-gradient-primary bg-clip-text text-transparent bg-gradient-to-r from-promptflow-purple to-promptflow-blue">
@@ -287,7 +301,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
           <div className="md:col-span-2">
             <Card className="shadow-md hover:shadow-lg transition-all border-0 overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 border-b">
-                <CardTitle>{isEditing ? 'Edit Prompt' : 'Prompt Details'}</CardTitle>
+                <CardTitle as="h2">{isEditing ? 'Edit Prompt' : 'Prompt Details'}</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <Form {...form}>
@@ -297,13 +311,14 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                       name="title"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Title</FormLabel>
+                          <FormLabel as="h3">Title</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="E.g. GPT-4 Email Writer" 
                               {...field} 
                               disabled={isLoading}
                               className="border-gray-300 focus:border-promptflow-purple focus:ring-promptflow-purple"
+                              aria-label="Prompt title"
                             />
                           </FormControl>
                           <FormDescription>
@@ -314,19 +329,20 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                       )}
                     />
                     
-                    {/* Moved prompt content field to be right after the title */}
+                    {/* Prompt content field right after the title */}
                     <FormField
                       control={form.control}
                       name="content"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Prompt Content</FormLabel>
+                          <FormLabel as="h3">Prompt Content</FormLabel>
                           <FormControl>
                             <Textarea 
                               placeholder="Write your prompt content here..." 
                               {...field} 
                               className="min-h-32 font-mono border-gray-300 focus:border-promptflow-purple focus:ring-promptflow-purple"
                               disabled={isLoading}
+                              aria-label="Prompt content"
                             />
                           </FormControl>
                           <FormDescription>
@@ -342,13 +358,14 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Description (Optional)</FormLabel>
+                          <FormLabel as="h3">Description (Optional)</FormLabel>
                           <FormControl>
                             <Textarea 
                               placeholder="Briefly describe what this prompt does" 
                               {...field} 
                               disabled={isLoading}
                               className="border-gray-300 focus:border-promptflow-purple focus:ring-promptflow-purple"
+                              aria-label="Prompt description"
                             />
                           </FormControl>
                           <FormDescription>
@@ -365,14 +382,14 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                         name="model"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Model</FormLabel>
+                            <FormLabel as="h3">Model</FormLabel>
                             <Select 
                               onValueChange={field.onChange} 
                               defaultValue={field.value}
                               disabled={isLoading}
                             >
                               <FormControl>
-                                <SelectTrigger className="border-gray-300 focus:border-promptflow-purple focus:ring-promptflow-purple">
+                                <SelectTrigger className="border-gray-300 focus:border-promptflow-purple focus:ring-promptflow-purple" aria-label="Select AI model">
                                   <SelectValue placeholder="Select a model" />
                                 </SelectTrigger>
                               </FormControl>
@@ -397,7 +414,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                         name="temperature"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Temperature ({field.value})</FormLabel>
+                            <FormLabel as="h3">Temperature ({field.value})</FormLabel>
                             <FormControl>
                               <Input 
                                 type="range" 
@@ -407,6 +424,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                                 {...field}
                                 disabled={isLoading}
                                 className="w-full h-8 accent-promptflow-purple"
+                                aria-label="Temperature setting"
                               />
                             </FormControl>
                             <FormDescription>
@@ -429,10 +447,11 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                               onCheckedChange={field.onChange}
                               disabled={isLoading}
                               className="data-[state=checked]:bg-promptflow-purple data-[state=checked]:border-promptflow-purple"
+                              aria-label="Make prompt public"
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Make this prompt public</FormLabel>
+                            <FormLabel as="h3">Make this prompt public</FormLabel>
                             <FormDescription>
                               Public prompts can be discovered by other users in the Explore section
                             </FormDescription>
@@ -454,6 +473,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                       type="submit" 
                       disabled={isLoading}
                       className="w-full bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90 transition-all"
+                      aria-label={isEditing ? "Update prompt" : "Create prompt"}
                     >
                       {isLoading ? (
                         <>
@@ -473,7 +493,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
           <div className="md:block">
             <Card className="shadow-md hover:shadow-lg transition-all border-0 overflow-hidden sticky top-4">
               <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 border-b">
-                <CardTitle>Prompt Tools</CardTitle>
+                <CardTitle as="h2">Prompt Tools</CardTitle>
               </CardHeader>
               <CardContent className="p-4">
                 <Tabs defaultValue="optimize">
@@ -513,7 +533,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
             </Card>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
