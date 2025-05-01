@@ -62,7 +62,12 @@ const Navbar = () => {
           {/* Logo and Brand */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center">
-              <div className="bg-gradient-to-r from-purple-600 to-blue-500 rounded-md w-8 h-8 mr-2"></div>
+              {/* Replace the colored div with the actual logo image */}
+              <img
+                src="/logo.png"
+                alt="PromptNexis Logo"
+                className="h-8 w-auto mr-2"
+              />
               <span className="text-xl font-bold">PromptNexis</span>
             </Link>
             
