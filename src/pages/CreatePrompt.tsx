@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { Prompt } from '@/types/prompt';
 import {
   Form,
   FormControl,
@@ -73,7 +74,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
   const navigate = useNavigate();
   const { user, isAnonymous } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [promptData, setPromptData] = useState<any>(null);
+  const [promptData, setPromptData] = useState<Prompt | null>(null);
   const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
   
   // Initialize form with default values
@@ -120,17 +121,21 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
         return;
       }
       
-      setPromptData(data);
+      // Cast the data to our Prompt type
+      const promptData = data as unknown as Prompt;
+      setPromptData(promptData);
       
       // Extract llm_settings safely
       let model = "gpt-4";
       let temperature = 0.7;
       
-      if (data.llm_settings) {
+      if (promptData.llm_settings) {
         try {
-          if (typeof data.llm_settings === 'object') {
-            model = data.llm_settings.model || "gpt-4";
-            temperature = data.llm_settings.temperature || 0.7;
+          if (typeof promptData.llm_settings === 'object') {
+            // Using type assertion here since we've verified it's an object
+            const settings = promptData.llm_settings as { model?: string; temperature?: number };
+            model = settings.model || "gpt-4";
+            temperature = settings.temperature || 0.7;
           }
         } catch (e) {
           console.error("Error parsing llm_settings:", e);
@@ -139,12 +144,12 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
       
       // Update form values
       form.reset({
-        title: data.title || "",
-        description: data.description || "",
-        content: data.content || "",
+        title: promptData.title || "",
+        description: promptData.description || "",
+        content: promptData.content || "",
         model: model,
         temperature: temperature,
-        isPublic: data.is_public || false,
+        isPublic: promptData.is_public || false,
       });
     } catch (error: any) {
       console.error('Error fetching prompt:', error);

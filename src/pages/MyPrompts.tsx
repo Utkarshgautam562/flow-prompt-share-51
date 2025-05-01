@@ -133,7 +133,9 @@ const MyPrompts = () => {
                   let modelName = "Unknown";
                   try {
                     if (prompt.llm_settings && typeof prompt.llm_settings === 'object') {
-                      modelName = prompt.llm_settings.model || "Unknown";
+                      // Type assertion for safety
+                      const settings = prompt.llm_settings as { model?: string };
+                      modelName = settings.model || "Unknown";
                     }
                   } catch (e) {
                     console.error("Error parsing llm_settings:", e);
