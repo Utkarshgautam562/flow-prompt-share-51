@@ -37,8 +37,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
+import { Copy, Sparkles, X } from 'lucide-react';
 import CollectionSelector from '@/components/collections/CollectionSelector';
+import { Helmet } from 'react-helmet';
 
 // Define the form schema
 const formSchema = z.object({
@@ -51,14 +52,20 @@ const formSchema = z.object({
   model: z.string({
     required_error: "Please select a model",
   }),
+  customModel: z.string().optional(),
   isPublic: z.boolean().default(false),
+  isShared: z.boolean().default(false),
 });
 
 // Available models
-const LLM_MODELS = ["GPT-4", "GPT-3.5", "Claude", "Gemini", "Mixtral", "Llama"];
+const LLM_MODELS = ["GPT-4", "GPT-3.5", "Claude", "Gemini", "Mixtral", "Llama", "Other"];
 
 // Available tags (in a real app, these might be fetched from the database)
-const AVAILABLE_TAGS = ["Marketing", "Coding", "Data Analysis", "Creative Writing", "Research", "Customer Support", "Legal", "Education"];
+const AVAILABLE_TAGS = [
+  "Marketing", "Coding", "Data Analysis", "Creative Writing", 
+  "Research", "Customer Support", "Legal", "Education", 
+  "Summarization", "Translation", "Brainstorming", "Academic"
+];
 
 interface CreatePromptProps {
   isEditing?: boolean;
@@ -72,6 +79,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
   const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);
+  const [showCustomModel, setShowCustomModel] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -79,7 +87,9 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
       title: "",
       content: "",
       model: "GPT-4",
+      customModel: "",
       isPublic: false,
+      isShared: false,
     },
   });
 
@@ -99,13 +109,23 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
               if (promptData) {
                 // Extract model from llm_settings safely
                 let modelValue = "GPT-4"; // Default value
+                let customModelValue = "";
+                
                 if (promptData.llm_settings) {
                   const llmSettings = typeof promptData.llm_settings === 'string' 
                     ? JSON.parse(promptData.llm_settings) 
                     : promptData.llm_settings;
                   
                   if (llmSettings && typeof llmSettings === 'object' && 'model' in llmSettings) {
-                    modelValue = llmSettings.model || "GPT-4";
+                    const model = llmSettings.model || "GPT-4";
+                    
+                    if (LLM_MODELS.includes(model)) {
+                      modelValue = model;
+                    } else {
+                      modelValue = "Other";
+                      customModelValue = model;
+                      setShowCustomModel(true);
+                    }
                   }
                 }
                 
@@ -113,7 +133,9 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                   title: promptData.title || "",
                   content: promptData.content || "",
                   model: modelValue,
+                  customModel: customModelValue,
                   isPublic: promptData.is_public || false,
+                  isShared: promptData.is_shared || false,
                 });
                 setSelectedTags(promptData.tags || []);
               } else {
@@ -134,13 +156,23 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
             if (data) {
               // Extract model from llm_settings safely
               let modelValue = "GPT-4"; // Default value
+              let customModelValue = "";
+              
               if (data.llm_settings) {
                 const llmSettings = typeof data.llm_settings === 'string'
                   ? JSON.parse(data.llm_settings)
                   : data.llm_settings;
                 
                 if (llmSettings && typeof llmSettings === 'object' && 'model' in llmSettings) {
-                  modelValue = String(llmSettings.model) || "GPT-4";
+                  const model = String(llmSettings.model) || "GPT-4";
+                  
+                  if (LLM_MODELS.includes(model)) {
+                    modelValue = model;
+                  } else {
+                    modelValue = "Other";
+                    customModelValue = model;
+                    setShowCustomModel(true);
+                  }
                 }
               }
               
@@ -148,8 +180,21 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                 title: data.title || "",
                 content: data.content || "",
                 model: modelValue,
+                customModel: customModelValue,
                 isPublic: data.is_public || false,
+                isShared: data.is_shared || false,
               });
+
+              // Fetch collections for this prompt
+              const { data: promptCollections } = await supabase
+                .from('prompt_collections')
+                .select('collection_id')
+                .eq('prompt_id', id);
+
+              if (promptCollections && promptCollections.length > 0) {
+                setSelectedCollections(promptCollections.map(pc => pc.collection_id));
+              }
+              
               // If you have tags stored, set them here
               // setSelectedTags(data.tags || []);
             } else {
@@ -169,6 +214,14 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
 
     fetchPromptData();
   }, [isEditing, id, form, navigate, isAnonymous]);
+
+  const handleModelChange = (value: string) => {
+    form.setValue('model', value);
+    setShowCustomModel(value === "Other");
+    if (value !== "Other") {
+      form.setValue('customModel', "");
+    }
+  };
 
   const handleTagSelect = (tag: string) => {
     if (!selectedTags.includes(tag)) {
@@ -222,15 +275,19 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
     setIsSubmitting(true);
 
     try {
+      // Determine the model to use
+      const modelToUse = values.model === "Other" ? values.customModel : values.model;
+      
       // Format the data for Supabase
       const promptData = {
         title: values.title,
         content: values.content,
         llm_settings: { 
-          model: values.model.toLowerCase(),
+          model: modelToUse.toLowerCase(),
           temperature: 0.7
         },
         is_public: values.isPublic,
+        is_shared: values.isShared,
         user_id: user?.id,
         // In a real implementation, tags would be stored in a separate table
         // with a many-to-many relationship to prompts
@@ -270,11 +327,19 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
         toast.success("Prompt created successfully!");
         navigate(`/prompt/${data[0].id}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving prompt:', error);
       toast.error("Failed to save prompt. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCopyContent = () => {
+    const content = form.getValues("content");
+    if (content) {
+      navigator.clipboard.writeText(content);
+      toast.success("Prompt content copied to clipboard!");
     }
   };
 
@@ -291,15 +356,20 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      <Helmet>
+        <title>{isEditing ? 'Edit Prompt' : 'Create Prompt'} | PromptFlow</title>
+        <meta name="description" content={isEditing ? 'Edit your existing prompt' : 'Create a new AI prompt'} />
+      </Helmet>
+      
       <Navbar />
       
       <div className="container max-w-3xl px-4 md:px-6 py-8">
         <div className="mb-4">
           <BackButton to="/my-prompts" />
         </div>
-        <Card>
+        <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>{isEditing ? 'Edit Prompt' : 'Create a New Prompt'}</CardTitle>
+            <CardTitle className="text-2xl">{isEditing ? 'Edit Prompt' : 'Create a New Prompt'}</CardTitle>
             <CardDescription>
               {isEditing 
                 ? 'Update your prompt details below.' 
@@ -315,9 +385,13 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Title</FormLabel>
+                      <FormLabel className="text-base">Title</FormLabel>
                       <FormControl>
-                        <Input placeholder="E.g., Creative Story Generator" {...field} />
+                        <Input 
+                          placeholder="E.g., Creative Story Generator" 
+                          className="text-base py-6" 
+                          {...field} 
+                        />
                       </FormControl>
                       <FormDescription>
                         A descriptive title for your prompt
@@ -332,11 +406,22 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                   name="content"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Prompt Content</FormLabel>
+                      <div className="flex items-center justify-between">
+                        <FormLabel className="text-base">Prompt Content</FormLabel>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex items-center gap-1"
+                          onClick={handleCopyContent}
+                        >
+                          <Copy size={14} /> Copy
+                        </Button>
+                      </div>
                       <FormControl>
                         <Textarea 
                           placeholder="Write your prompt here..." 
-                          className="h-32"
+                          className="h-64 font-mono text-sm"
                           {...field}
                         />
                       </FormControl>
@@ -353,8 +438,8 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                   name="model"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>LLM Model</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormLabel className="text-base">LLM Model</FormLabel>
+                      <Select onValueChange={handleModelChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a model" />
@@ -376,15 +461,37 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                   )}
                 />
                 
+                {showCustomModel && (
+                  <FormField
+                    control={form.control}
+                    name="customModel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base">Custom Model Name</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="E.g., Anthropic Claude-3" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Enter the name of the custom model
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                
                 <div className="space-y-2">
-                  <FormLabel>Tags</FormLabel>
+                  <FormLabel className="text-base">Tags</FormLabel>
                   <div className="flex flex-wrap gap-2 mb-2">
                     {selectedTags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                      <Badge key={tag} variant="secondary" className="flex items-center gap-1 py-1 px-3">
                         {tag}
                         <X 
                           size={12} 
-                          className="cursor-pointer" 
+                          className="cursor-pointer ml-1" 
                           onClick={() => removeTag(tag)}
                         />
                       </Badge>
@@ -409,7 +516,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                 </div>
                 
                 <div className="space-y-2">
-                  <FormLabel>Collections</FormLabel>
+                  <FormLabel className="text-base">Collections</FormLabel>
                   <CollectionSelector 
                     selectedCollections={selectedCollections}
                     onSelectCollections={setSelectedCollections}
@@ -442,9 +549,32 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="isShared"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          className="form-checkbox h-5 w-5 text-indigo-600"
+                          checked={field.value}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1">
+                        <FormLabel>Enable sharing</FormLabel>
+                        <FormDescription>
+                          Allow this prompt to be shared via direct link
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
               </CardContent>
               
-              <CardFooter className="flex justify-between">
+              <CardFooter className="flex justify-between border-t pt-6">
                 <Button 
                   type="button" 
                   variant="outline"

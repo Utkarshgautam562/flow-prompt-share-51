@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import BackButton from '../BackButton';
 import Navbar from '../Navbar';
 import { Json } from '@/integrations/supabase/types';
+import { Helmet } from 'react-helmet';
 
 interface Prompt {
   id: string;
@@ -83,8 +84,9 @@ const SharedCollectionView = () => {
             
             if (p.llm_settings) {
               // Handle llm_settings based on its structure
-              if (typeof p.llm_settings === 'object' && p.llm_settings !== null && !Array.isArray(p.llm_settings)) {
-                const settings = p.llm_settings as Record<string, Json>;
+              const settings = p.llm_settings;
+              
+              if (typeof settings === 'object' && settings !== null && !Array.isArray(settings)) {
                 if ('model' in settings) {
                   modelName = String(settings.model);
                 }
@@ -148,8 +150,21 @@ const SharedCollectionView = () => {
     );
   }
 
+  // Prepare Open Graph meta description
+  const metaDescription = collection.description || `A collection of prompts: ${collection.name}`;
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      <Helmet>
+        <title>{collection.name} | PromptFlow</title>
+        <meta name="description" content={metaDescription} />
+        <meta property="og:title" content={`${collection.name} | PromptFlow`} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={window.location.href} />
+        <meta property="twitter:card" content="summary_large_image" />
+      </Helmet>
+      
       <Navbar />
       <div className="container mx-auto py-8 px-4">
         <div className="mb-6">
@@ -167,6 +182,19 @@ const SharedCollectionView = () => {
           {collection.description && (
             <p className="mt-2 text-gray-600 mb-6">{collection.description}</p>
           )}
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-2"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              toast.success("Collection link copied to clipboard!");
+            }}
+          >
+            <LinkIcon size={16} />
+            Copy Collection Link
+          </Button>
         </div>
         
         {prompts.length === 0 ? (
@@ -179,13 +207,14 @@ const SharedCollectionView = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {prompts.map((prompt) => {
-              // Extract model from llm_settings again for rendering
+              // Extract model from llm_settings for rendering
               let modelName = "Unknown";
               
               if (prompt.llm_settings) {
                 // Handle llm_settings based on its structure
-                if (typeof prompt.llm_settings === 'object' && prompt.llm_settings !== null && !Array.isArray(prompt.llm_settings)) {
-                  const settings = prompt.llm_settings as Record<string, Json>;
+                const settings = prompt.llm_settings;
+                
+                if (typeof settings === 'object' && settings !== null && !Array.isArray(settings)) {
                   if ('model' in settings) {
                     modelName = String(settings.model);
                   }

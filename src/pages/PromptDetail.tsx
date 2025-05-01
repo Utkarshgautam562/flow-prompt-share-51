@@ -7,10 +7,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLikes } from '@/hooks/useLikes';
-import { Copy, ThumbsUp, Share2, Loader2 } from 'lucide-react';
+import { Copy, Heart, Share2, Loader2, Edit, LinkIcon, Tag } from 'lucide-react';
 import BackButton from '@/components/BackButton';
+import { Helmet } from 'react-helmet';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 
 interface Prompt {
   id: string;
@@ -25,6 +27,7 @@ interface Prompt {
   profiles: {
     username: string;
   };
+  is_shared: boolean;
 }
 
 const PromptDetail = () => {
@@ -35,6 +38,7 @@ const PromptDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const { likesCount, isLiked, toggleLike } = useLikes(id || '');
+  const [collections, setCollections] = useState<{ id: string, name: string }[]>([]);
 
   useEffect(() => {
     const fetchPrompt = async () => {
@@ -56,13 +60,32 @@ const PromptDetail = () => {
           profiles: data.profiles as { username: string },
           llm_settings: data.llm_settings as { model: string; temperature: number }
         });
+
+        // Fetch collections this prompt belongs to
+        const { data: promptCollections, error: collectionsError } = await supabase
+          .from('prompt_collections')
+          .select('collection_id')
+          .eq('prompt_id', id);
+
+        if (collectionsError) throw collectionsError;
+
+        if (promptCollections && promptCollections.length > 0) {
+          const collectionIds = promptCollections.map(pc => pc.collection_id);
+          
+          const { data: collectionsData, error: collectionsDataError } = await supabase
+            .from('collections')
+            .select('id, name')
+            .in('id', collectionIds);
+
+          if (collectionsDataError) throw collectionsDataError;
+          
+          if (collectionsData) {
+            setCollections(collectionsData);
+          }
+        }
       } catch (error: any) {
         console.error('Error fetching prompt:', error);
-        toast({
-          variant: "destructive",
-          title: "Failed to load prompt",
-          description: error.message,
-        });
+        toast.error("Failed to load prompt: " + error.message);
       } finally {
         setIsLoading(false);
       }
@@ -76,10 +99,7 @@ const PromptDetail = () => {
     
     navigator.clipboard.writeText(prompt.content);
     setCopied(true);
-    toast({
-      title: "Copied to clipboard",
-      description: "The prompt has been copied to your clipboard.",
-    });
+    toast.success("Copied to clipboard");
     
     setTimeout(() => {
       setCopied(false);
@@ -91,29 +111,8 @@ const PromptDetail = () => {
     
     const shareUrl = `${window.location.origin}/prompt/${id}`;
     
-    // Try to use Web Share API if available
-    if (navigator.share) {
-      navigator.share({
-        title: prompt.title,
-        text: `Check out this prompt: ${prompt.title}`,
-        url: shareUrl,
-      }).catch(err => {
-        console.error('Error sharing:', err);
-        // Fallback to clipboard
-        navigator.clipboard.writeText(shareUrl);
-        toast({
-          title: "Link copied",
-          description: "Share link copied to clipboard!",
-        });
-      });
-    } else {
-      // Fallback to clipboard
-      navigator.clipboard.writeText(shareUrl);
-      toast({
-        title: "Link copied",
-        description: "Share link copied to clipboard!",
-      });
-    }
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("Link copied to clipboard!");
   };
 
   if (isLoading) {
@@ -137,17 +136,28 @@ const PromptDetail = () => {
   }
 
   const isOwner = user && user.id === prompt.user_id;
+  const metaDescription = `${prompt.title} - A prompt optimized for ${prompt.llm_settings.model}`;
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
+      <Helmet>
+        <title>{prompt.title} | PromptFlow</title>
+        <meta name="description" content={metaDescription} />
+        <meta property="og:title" content={`${prompt.title} | PromptFlow`} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={window.location.href} />
+        <meta property="twitter:card" content="summary_large_image" />
+      </Helmet>
+      
       <BackButton className="mb-4" />
       
-      <Card>
+      <Card className="shadow-md">
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-2xl">{prompt.title}</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-2xl font-bold">{prompt.title}</CardTitle>
+              <CardDescription className="mt-2">
                 by {prompt.profiles?.username || 'Anonymous'} • {new Date(prompt.created_at).toLocaleDateString()}
               </CardDescription>
             </div>
@@ -157,7 +167,9 @@ const PromptDetail = () => {
                   variant="outline" 
                   size="sm" 
                   onClick={() => navigate(`/edit-prompt/${id}`)}
+                  className="flex items-center gap-1"
                 >
+                  <Edit size={16} />
                   Edit
                 </Button>
               )}
@@ -165,34 +177,64 @@ const PromptDetail = () => {
                 variant={copied ? "default" : "outline"} 
                 size="sm" 
                 onClick={copyToClipboard}
+                className="flex items-center gap-1"
               >
-                <Copy size={14} className="mr-1" /> {copied ? 'Copied' : 'Copy'}
+                <Copy size={16} /> {copied ? 'Copied' : 'Copy'}
               </Button>
+              {prompt.is_shared && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={sharePrompt}
+                  className="flex items-center gap-1"
+                >
+                  <LinkIcon size={16} /> Share
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
         
         <CardContent className="space-y-6">
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="bg-blue-50">
+            <Badge variant="outline" className="bg-blue-50 flex items-center gap-1 px-3 py-1">
+              <Tag size={12} />
               {prompt.llm_settings.model || 'GPT-4'}
             </Badge>
-            <Badge variant="outline" className="bg-blue-50">
+            <Badge variant="outline" className="bg-blue-50 px-3 py-1">
               Temperature: {prompt.llm_settings.temperature || 0.7}
             </Badge>
+            
+            {collections.length > 0 && collections.map(collection => (
+              <HoverCard key={collection.id}>
+                <HoverCardTrigger asChild>
+                  <Badge 
+                    variant="outline" 
+                    className="bg-green-50 flex items-center gap-1 px-3 py-1 cursor-pointer"
+                    onClick={() => navigate(`/collection/${collection.id}`)}
+                  >
+                    <Tag size={12} />
+                    {collection.name}
+                  </Badge>
+                </HoverCardTrigger>
+                <HoverCardContent className="w-64 p-2">
+                  <p className="text-sm">Click to view this collection</p>
+                </HoverCardContent>
+              </HoverCard>
+            ))}
           </div>
           
           <Separator />
           
           <div>
-            <h3 className="font-semibold mb-3">Prompt</h3>
-            <div className="bg-gray-50 p-4 rounded-md whitespace-pre-wrap">
+            <h3 className="font-semibold text-lg mb-3">Prompt</h3>
+            <div className="bg-gray-50 p-4 rounded-md whitespace-pre-wrap font-mono text-sm border border-gray-200">
               {prompt.content}
             </div>
           </div>
 
           <div className="pt-4">
-            <h3 className="font-semibold mb-3">How to Use This Prompt</h3>
+            <h3 className="font-semibold text-lg mb-3">How to Use This Prompt</h3>
             <ol className="list-decimal pl-5 space-y-2">
               <li>Copy the prompt using the copy button above</li>
               <li>Paste it into your preferred AI assistant</li>
@@ -208,16 +250,16 @@ const PromptDetail = () => {
           </div>
           <div className="flex gap-2">
             <Button 
-              variant={isLiked ? "default" : "ghost"} 
+              variant={isLiked ? "default" : "outline"} 
               size="sm"
-              className={isLiked ? "bg-pink-100 text-pink-600 hover:bg-pink-200 hover:text-pink-700" : ""}
+              className={isLiked ? "bg-pink-100 text-pink-600 hover:bg-pink-200 hover:text-pink-700 flex items-center gap-1" : "flex items-center gap-1"}
               onClick={toggleLike}
             >
-              <ThumbsUp size={16} className={`mr-1 ${isLiked ? "fill-current" : ""}`} /> 
+              <Heart size={16} className={`${isLiked ? "fill-pink-600" : ""}`} /> 
               {isLiked ? 'Liked' : 'Like'} ({likesCount})
             </Button>
-            <Button variant="ghost" size="sm" onClick={sharePrompt}>
-              <Share2 size={16} className="mr-1" /> Share
+            <Button variant="outline" size="sm" onClick={sharePrompt} className="flex items-center gap-1">
+              <Share2 size={16} /> Copy Link
             </Button>
           </div>
         </CardFooter>
