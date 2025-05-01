@@ -6,12 +6,13 @@ import { FolderOpen, Share2, Edit, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import PromptCard from '../PromptCard';
 import { Button } from '@/components/ui/button';
+import { Json } from '@/integrations/supabase/types';
 
 interface Prompt {
   id: string;
   title: string;
   content: string;
-  llm_settings: { model: string };
+  llm_settings: Json;
   user_id: string;
   username?: string;
 }
@@ -68,17 +69,31 @@ const CollectionDetail = () => {
           
           if (promptDetailsError) throw promptDetailsError;
           
-          // Format the data
-          const formattedPrompts = promptsData?.map(p => ({
-            id: p.id,
-            title: p.title,
-            content: p.content,
-            llm_settings: typeof p.llm_settings === 'object' ? 
-              { model: p.llm_settings?.model || 'Unknown' } : 
-              { model: 'Unknown' },
-            user_id: p.user_id,
-            username: p.profiles?.username
-          }));
+          // Format the data with proper type handling
+          const formattedPrompts = promptsData?.map(p => {
+            // Extract model from llm_settings safely
+            let modelName = "Unknown";
+            
+            if (p.llm_settings) {
+              // Handle llm_settings based on its structure
+              if (typeof p.llm_settings === 'object' && p.llm_settings !== null && !Array.isArray(p.llm_settings)) {
+                const settings = p.llm_settings as Record<string, Json>;
+                if ('model' in settings) {
+                  modelName = String(settings.model);
+                }
+              }
+            }
+            
+            return {
+              id: p.id,
+              title: p.title,
+              content: p.content,
+              llm_settings: p.llm_settings,
+              user_id: p.user_id,
+              username: p.profiles?.username,
+              modelName
+            };
+          });
           
           setPrompts(formattedPrompts || []);
         } else {
@@ -237,18 +252,33 @@ const CollectionDetail = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {prompts.map((prompt) => (
-            <PromptCard
-              key={prompt.id}
-              id={prompt.id}
-              title={prompt.title}
-              description={prompt.content}
-              llm={prompt.llm_settings?.model || 'Unknown'}
-              useCase="General"
-              upvotes={0}
-              author={prompt.username || "User"}
-            />
-          ))}
+          {prompts.map((prompt) => {
+            // Extract model from llm_settings again for rendering
+            let modelName = "Unknown";
+            
+            if (prompt.llm_settings) {
+              // Handle llm_settings based on its structure
+              if (typeof prompt.llm_settings === 'object' && prompt.llm_settings !== null && !Array.isArray(prompt.llm_settings)) {
+                const settings = prompt.llm_settings as Record<string, Json>;
+                if ('model' in settings) {
+                  modelName = String(settings.model);
+                }
+              }
+            }
+            
+            return (
+              <PromptCard
+                key={prompt.id}
+                id={prompt.id}
+                title={prompt.title}
+                description={prompt.content}
+                llm={modelName}
+                useCase="General"
+                upvotes={0}
+                author={prompt.username || "User"}
+              />
+            );
+          })}
         </div>
       )}
     </div>
