@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,22 +12,7 @@ import { Copy, Heart, Share2, Loader2, Edit, LinkIcon, Tag } from 'lucide-react'
 import BackButton from '@/components/BackButton';
 import { Helmet } from 'react-helmet';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
-
-interface Prompt {
-  id: string;
-  title: string;
-  content: string;
-  created_at: string;
-  user_id: string;
-  llm_settings: {
-    model: string;
-    temperature: number;
-  };
-  profiles: {
-    username: string;
-  };
-  is_shared: boolean;
-}
+import { Prompt } from '@/types/prompt';
 
 const PromptDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -55,11 +39,14 @@ const PromptDetail = () => {
         if (error) throw error;
         
         // Transform data to handle nested profile info
-        setPrompt({
+        const promptData: Prompt = {
           ...data,
           profiles: data.profiles as { username: string },
-          llm_settings: data.llm_settings as { model: string; temperature: number }
-        });
+          llm_settings: data.llm_settings as { model: string; temperature: number },
+          is_shared: data.is_shared
+        };
+        
+        setPrompt(promptData);
 
         // Fetch collections this prompt belongs to
         const { data: promptCollections, error: collectionsError } = await supabase
