@@ -38,6 +38,14 @@ function App() {
         
         {/* Protected routes */}
         <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <UserProfile />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
           path="/my-prompts" 
           element={
             <ProtectedRoute>
