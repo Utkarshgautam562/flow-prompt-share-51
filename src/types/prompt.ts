@@ -10,7 +10,7 @@ export interface Prompt {
   user_id: string;
   created_at: string;
   is_public?: boolean;
-  is_shared?: boolean;
+  is_shared: boolean;
   profiles?: {
     username: string;
   };
