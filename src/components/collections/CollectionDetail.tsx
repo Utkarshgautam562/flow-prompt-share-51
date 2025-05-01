@@ -65,6 +65,12 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
       return data as Collection;
     },
     enabled: !!(id || sharedId),
+    meta: {
+      onError: (error: Error) => {
+        console.error('Collection loading error:', error);
+        toast.error('Error loading collection data');
+      }
+    }
   });
   
   // Fetch prompts in this collection
@@ -99,6 +105,12 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
       return promptsData || [];
     },
     enabled: !!collection?.id,
+    meta: {
+      onError: (error: Error) => {
+        console.error('Error loading collection prompts:', error);
+        toast.error('Error loading prompts in this collection');
+      }
+    }
   });
 
   // Transform the raw Supabase prompts data to match our Prompt interface
@@ -136,7 +148,7 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
       id: item.id,
       title: item.title,
       content: item.content,
-      description: '', // Add a default empty string for description
+      description: item.content || '', // Use content as description
       llm_settings: llmSettings,
       user_id: item.user_id || '',
       created_at: item.created_at || new Date().toISOString(),
@@ -149,21 +161,15 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
   const isLoading = collectionLoading || promptsLoading;
   const error = collectionError || promptsError;
   
-  useEffect(() => {
-    if (error) {
-      toast.error('Error loading collection data');
-      console.error('Collection loading error:', error);
-    }
-  }, [error]);
-  
   if (error) {
     return (
-      <div className="p-8 text-center bg-white rounded-lg shadow">
+      <div className="p-8 text-center bg-white rounded-lg shadow animate-fade-in">
         <h2 className="text-xl font-semibold text-red-500 mb-4">Error Loading Collection</h2>
         <p className="text-gray-600 mb-4">We encountered a problem loading this collection.</p>
         <Button 
           onClick={() => window.location.reload()}
           variant="outline"
+          className="hover:bg-gray-100 transition-colors"
         >
           Try Again
         </Button>
@@ -176,7 +182,7 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
       <div className="space-y-6">
         <Skeleton className="h-12 w-3/4 mb-4" />
         <Skeleton className="h-6 w-1/2 mb-8" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
             <Skeleton key={i} className="h-60 w-full rounded-lg" />
           ))}
@@ -187,7 +193,7 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
   
   if (!collection) {
     return (
-      <div className="p-8 text-center bg-white rounded-lg shadow">
+      <div className="p-8 text-center bg-white rounded-lg shadow animate-fade-in">
         <h2 className="text-xl font-semibold mb-4">Collection Not Found</h2>
         <p className="text-gray-600">This collection doesn't exist or you don't have permission to view it.</p>
       </div>
@@ -197,16 +203,18 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
   const isOwner = user && user.id === collection.user_id;
   
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">{collection.name}</h1>
+    <div className="animate-fade-in">
+      <div className="mb-8 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+        <h1 className="text-2xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-500">
+          {collection.name}
+        </h1>
         {collection.description && (
           <p className="text-gray-600">{collection.description}</p>
         )}
       </div>
       
       {prompts.length === 0 ? (
-        <div className="p-8 text-center bg-white rounded-lg border border-gray-200">
+        <div className="p-8 text-center bg-white rounded-lg border border-gray-200 shadow-sm">
           <h2 className="text-xl font-semibold mb-2">No Prompts in This Collection</h2>
           <p className="text-gray-500">
             {isOwner 
@@ -215,7 +223,7 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {prompts.map((prompt) => (
             <PromptCard
               key={prompt.id}
