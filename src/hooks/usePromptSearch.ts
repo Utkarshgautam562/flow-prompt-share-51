@@ -90,8 +90,8 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
           llm_settings: llmSettings,
           user_id: item.user_id || '',
           created_at: item.created_at || new Date().toISOString(),
-          is_shared: item.is_shared || false, // Provide default value for is_shared
-          is_public: item.is_public || false, // Also provide default for is_public
+          is_public: item.is_public || false,
+          is_shared: false, // Provide default value for is_shared since it doesn't exist in the database yet
           profiles: item.profiles as { username: string } | undefined
         } satisfies Prompt;
       });

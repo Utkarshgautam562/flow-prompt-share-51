@@ -39,13 +39,13 @@ const PromptDetail = () => {
           
         if (error) throw error;
         
-        // Transform data to handle nested profile info
+        // Transform data to handle nested profile info and provide default values for missing properties
         const promptData: Prompt = {
           ...data,
           profiles: data.profiles as { username: string },
           llm_settings: data.llm_settings as { model: string; temperature: number },
-          is_shared: data.is_shared || false, // Provide default value
-          is_public: data.is_public || false  // Provide default value
+          is_public: data.is_public || false,
+          is_shared: false  // Default value since it may not exist in the database yet
         };
         
         setPrompt(promptData);
