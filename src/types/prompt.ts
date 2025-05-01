@@ -3,7 +3,7 @@ export interface Prompt {
   id: string;
   title: string;
   content: string;
-  description?: string;
+  description: string;
   llm_settings: {
     model: string;
     temperature?: number;

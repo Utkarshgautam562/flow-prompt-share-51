@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import PromptCard from '@/components/PromptCard';
 import { Prompt } from '@/types/prompt';
 
@@ -9,6 +9,35 @@ interface PromptGridProps {
 }
 
 const PromptGrid: React.FC<PromptGridProps> = ({ prompts, isLoading }) => {
+  // Memoize prompt cards for better performance
+  const renderPrompts = useCallback(() => {
+    if (!prompts || prompts.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-lg text-gray-500">No prompts found matching your criteria.</p>
+          <p className="text-sm text-gray-400 mt-2">Try adjusting your search or filters.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {prompts.map((prompt) => (
+          <PromptCard
+            key={prompt.id}
+            id={prompt.id}
+            title={prompt.title}
+            description={prompt.content}
+            llm={prompt.llm_settings?.model || 'Unknown'}
+            useCase="General" // This would come from tags in a real implementation
+            upvotes={0} // This would come from likes count in a real implementation
+            author={prompt.profiles?.username || 'Anonymous'}
+          />
+        ))}
+      </div>
+    );
+  }, [prompts]);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -19,31 +48,7 @@ const PromptGrid: React.FC<PromptGridProps> = ({ prompts, isLoading }) => {
     );
   }
 
-  if (!prompts || prompts.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-lg text-gray-500">No prompts found matching your criteria.</p>
-        <p className="text-sm text-gray-400 mt-2">Try adjusting your search or filters.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {prompts.map((prompt) => (
-        <PromptCard
-          key={prompt.id}
-          id={prompt.id}
-          title={prompt.title}
-          description={prompt.content}
-          llm={prompt.llm_settings?.model || 'Unknown'}
-          useCase="General" // This would come from tags in a real implementation
-          upvotes={0} // This would come from likes count in a real implementation
-          author={prompt.profiles?.username || 'Anonymous'}
-        />
-      ))}
-    </div>
-  );
+  return renderPrompts();
 };
 
-export default PromptGrid;
+export default React.memo(PromptGrid);

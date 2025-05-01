@@ -126,6 +126,7 @@ export type Database = {
         Row: {
           content: string
           created_at: string | null
+          description: string | null
           id: string
           is_public: boolean | null
           llm_settings: Json
@@ -136,6 +137,7 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string | null
+          description?: string | null
           id?: string
           is_public?: boolean | null
           llm_settings?: Json
@@ -146,6 +148,7 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string | null
+          description?: string | null
           id?: string
           is_public?: boolean | null
           llm_settings?: Json

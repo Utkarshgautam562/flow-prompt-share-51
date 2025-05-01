@@ -23,9 +23,13 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
         .select('*, profiles:user_id(username)')
         .eq('is_public', true);
 
-      // Apply search query if provided
+      // Apply search query if provided - optimize query by using exact match when possible
       if (query) {
-        promptQuery = promptQuery.or(`title.ilike.%${query}%,content.ilike.%${query}%`);
+        if (query.length > 3) {
+          promptQuery = promptQuery.or(`title.ilike.%${query}%,content.ilike.%${query}%,description.ilike.%${query}%`);
+        } else {
+          promptQuery = promptQuery.or(`title.ilike.${query}%,content.ilike.${query}%,description.ilike.${query}%`);
+        }
       }
 
       // Apply model filter if specified
@@ -61,7 +65,7 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
       // Process the data to ensure it matches the Prompt interface
       return (data || []).map(item => {
         // Parse llm_settings if needed and ensure it has the expected structure
-        let llmSettings: { model: string } = { model: 'Unknown' };
+        let llmSettings: { model: string; temperature?: number } = { model: 'Unknown' };
         
         if (item.llm_settings) {
           // Handle different possible types of llm_settings
@@ -69,7 +73,7 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
             try {
               // If it's a string, try to parse it as JSON
               const parsed = JSON.parse(item.llm_settings);
-              llmSettings = { model: parsed.model || 'Unknown' };
+              llmSettings = { model: parsed.model || 'Unknown', temperature: parsed.temperature };
             } catch (e) {
               console.error('Error parsing llm_settings string:', e);
             }
@@ -77,7 +81,10 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
             // If it's already an object, ensure it has the model property
             const settings = item.llm_settings as Json;
             if (typeof settings === 'object' && settings !== null && !Array.isArray(settings) && 'model' in settings) {
-              llmSettings = { model: String(settings.model) };
+              llmSettings = { 
+                model: String(settings.model), 
+                temperature: typeof settings.temperature === 'number' ? settings.temperature : undefined 
+              };
             }
           }
         }
@@ -87,11 +94,12 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
           id: item.id,
           title: item.title,
           content: item.content,
+          description: item.description || '',
           llm_settings: llmSettings,
           user_id: item.user_id || '',
           created_at: item.created_at || new Date().toISOString(),
           is_public: item.is_public || false,
-          is_shared: false, // Provide default value for is_shared since it doesn't exist in the database yet
+          is_shared: item.is_shared || false,
           profiles: item.profiles as { username: string } | undefined
         } satisfies Prompt;
       });
@@ -101,11 +109,12 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
     }
   };
 
-  // Use React Query to handle the data fetching
+  // Use React Query to handle the data fetching with improved caching strategy
   const { data: prompts, isLoading, isError, refetch } = useQuery({
     queryKey: ['prompts', searchQuery, filters],
     queryFn: () => fetchPrompts({ query: searchQuery, filters }),
-    staleTime: 60000, // 1 minute
+    staleTime: 300000, // Increase to 5 minutes for better caching
+    cacheTime: 600000, // Cache for 10 minutes
   });
 
   return {
