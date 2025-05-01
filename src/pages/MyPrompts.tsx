@@ -18,7 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import PromptCard from '@/components/PromptCard';
 import CollectionsList from '@/components/collections/CollectionsList';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarInset } from '@/components/ui/sidebar';
-import Separator from '@/components/ui/separator';
+import { Separator } from '@/components/ui/separator';
 
 interface Prompt {
   id: string;

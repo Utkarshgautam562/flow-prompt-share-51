@@ -60,13 +60,14 @@ const Auth = () => {
     
     setIsLoading(true);
     try {
-      const { data, error } = await signUp(email, password, { username });
+      // Call the signUp function and store the result
+      await signUp(email, password, { username });
       
-      if (error) throw error;
+      // If we get here, signup was successful - create a user in database
+      const { data: userData } = await supabase.auth.getUser();
       
-      // Open username dialog if signup was successful
-      if (data?.user) {
-        setNewUserId(data.user.id);
+      if (userData?.user) {
+        setNewUserId(userData.user.id);
         setIsUsernameDialogOpen(true);
       }
       
