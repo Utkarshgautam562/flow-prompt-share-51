@@ -114,7 +114,7 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
     queryKey: ['prompts', searchQuery, filters],
     queryFn: () => fetchPrompts({ query: searchQuery, filters }),
     staleTime: 300000, // Increase to 5 minutes for better caching
-    cacheTime: 600000, // Cache for 10 minutes
+    gcTime: 600000, // This replaces cacheTime in newer React Query versions
   });
 
   return {
