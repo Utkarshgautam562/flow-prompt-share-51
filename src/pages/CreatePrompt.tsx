@@ -301,7 +301,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
           <div className="md:col-span-2">
             <Card className="shadow-md hover:shadow-lg transition-all border-0 overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 border-b">
-                <CardTitle as="h2">{isEditing ? 'Edit Prompt' : 'Prompt Details'}</CardTitle>
+                <CardTitle>{isEditing ? 'Edit Prompt' : 'Prompt Details'}</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <Form {...form}>
@@ -311,7 +311,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                       name="title"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel as="h3">Title</FormLabel>
+                          <FormLabel>Title</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="E.g. GPT-4 Email Writer" 
@@ -335,7 +335,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                       name="content"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel as="h3">Prompt Content</FormLabel>
+                          <FormLabel>Prompt Content</FormLabel>
                           <FormControl>
                             <Textarea 
                               placeholder="Write your prompt content here..." 
@@ -358,7 +358,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel as="h3">Description (Optional)</FormLabel>
+                          <FormLabel>Description (Optional)</FormLabel>
                           <FormControl>
                             <Textarea 
                               placeholder="Briefly describe what this prompt does" 
@@ -382,7 +382,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                         name="model"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel as="h3">Model</FormLabel>
+                            <FormLabel>Model</FormLabel>
                             <Select 
                               onValueChange={field.onChange} 
                               defaultValue={field.value}
@@ -414,7 +414,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                         name="temperature"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel as="h3">Temperature ({field.value})</FormLabel>
+                            <FormLabel>Temperature ({field.value})</FormLabel>
                             <FormControl>
                               <Input 
                                 type="range" 
@@ -451,7 +451,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel as="h3">Make this prompt public</FormLabel>
+                            <FormLabel>Make this prompt public</FormLabel>
                             <FormDescription>
                               Public prompts can be discovered by other users in the Explore section
                             </FormDescription>
@@ -493,7 +493,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
           <div className="md:block">
             <Card className="shadow-md hover:shadow-lg transition-all border-0 overflow-hidden sticky top-4">
               <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 border-b">
-                <CardTitle as="h2">Prompt Tools</CardTitle>
+                <CardTitle>Prompt Tools</CardTitle>
               </CardHeader>
               <CardContent className="p-4">
                 <Tabs defaultValue="optimize">
