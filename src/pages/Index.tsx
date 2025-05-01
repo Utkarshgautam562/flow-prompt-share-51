@@ -10,80 +10,65 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, Brain, Puzzle, Zap, Code, MessageSquare } from 'lucide-react';
 
 // Mock data for demonstration
-const featuredPrompts = [
-  { 
-    id: '1',
-    title: 'Data Analysis Expert', 
-    description: 'Optimized prompt for data analysis and visualization. Works great with complex datasets and multiple variables.', 
-    llm: 'GPT-4', 
-    useCase: 'Data Analysis', 
-    upvotes: 128, 
-    author: 'data_wizard' 
-  },
-  { 
-    id: '2',
-    title: 'Creative Story Builder', 
-    description: 'Generate engaging short stories with complex characters and intricate plots. Includes character development guidelines.', 
-    llm: 'Claude 3', 
-    useCase: 'Creative Writing', 
-    upvotes: 95, 
-    author: 'novelist99' 
-  },
-  { 
-    id: '3',
-    title: 'SEO Content Optimizer', 
-    description: 'Create SEO-friendly content with keyword density analysis and readability improvements. Perfect for blog posts.', 
-    llm: 'GPT-4', 
-    useCase: 'Marketing', 
-    upvotes: 83, 
-    author: 'seo_pro' 
-  },
-  { 
-    id: '4',
-    title: 'Technical Documentation Generator', 
-    description: 'Generate comprehensive API documentation with code examples in multiple languages. Follows industry standards.', 
-    llm: 'Claude 3', 
-    useCase: 'Development', 
-    upvotes: 72, 
-    author: 'tech_writer' 
-  }
-];
-
+const featuredPrompts = [{
+  id: '1',
+  title: 'Data Analysis Expert',
+  description: 'Optimized prompt for data analysis and visualization. Works great with complex datasets and multiple variables.',
+  llm: 'GPT-4',
+  useCase: 'Data Analysis',
+  upvotes: 128,
+  author: 'data_wizard'
+}, {
+  id: '2',
+  title: 'Creative Story Builder',
+  description: 'Generate engaging short stories with complex characters and intricate plots. Includes character development guidelines.',
+  llm: 'Claude 3',
+  useCase: 'Creative Writing',
+  upvotes: 95,
+  author: 'novelist99'
+}, {
+  id: '3',
+  title: 'SEO Content Optimizer',
+  description: 'Create SEO-friendly content with keyword density analysis and readability improvements. Perfect for blog posts.',
+  llm: 'GPT-4',
+  useCase: 'Marketing',
+  upvotes: 83,
+  author: 'seo_pro'
+}, {
+  id: '4',
+  title: 'Technical Documentation Generator',
+  description: 'Generate comprehensive API documentation with code examples in multiple languages. Follows industry standards.',
+  llm: 'Claude 3',
+  useCase: 'Development',
+  upvotes: 72,
+  author: 'tech_writer'
+}];
 const Index = () => {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const navigate = useNavigate();
-  
   const handleSearch = (query: string, searchFilters: SearchFilters) => {
     // Navigate to the explore page with search parameters
     const searchParams = new URLSearchParams();
-    
     if (query) {
       searchParams.append('q', query);
     }
-    
     if (searchFilters.llmModel && searchFilters.llmModel !== 'All Models') {
       searchParams.append('model', searchFilters.llmModel);
     }
-    
     if (searchFilters.useCase && searchFilters.useCase !== 'All Use Cases') {
       searchParams.append('useCase', searchFilters.useCase);
     }
-    
     if (searchFilters.sortBy && searchFilters.sortBy !== 'relevance') {
       searchParams.append('sort', searchFilters.sortBy);
     }
-    
     navigate(`/explore?${searchParams.toString()}`);
   };
-
-  return (
-    <div className="min-h-screen flex flex-col">
+  return <div className="min-h-screen flex flex-col">
       <Helmet>
         <title>PromptNexis - Share and Discover AI Prompts for ChatGPT, Claude, and More</title>
-        <meta 
-          name="description" 
-          content="Create, share, organize, and discover high-quality AI prompts with PromptNexis. The ultimate platform for managing your AI prompts with team collaboration." 
-        />
+        <meta name="description" content="Create, share, organize, and discover high-quality AI prompts with PromptNexis. The ultimate platform for managing your AI prompts with team collaboration." />
         <link rel="canonical" href="https://promptnexis.com/" />
         <meta name="keywords" content="AI prompts, ChatGPT, GPT-4, Claude, Gemini, prompt library, prompt engineering, AI tools" />
         <meta property="og:type" content="website" />
@@ -102,10 +87,7 @@ const Index = () => {
               <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">
                 Organize, Optimize, and Deploy AI Prompts
               </h1>
-              <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl">
-                The ultimate platform for managing your AI prompts with team collaboration. 
-                Think 1Password meets GitHub for AI workflows.
-              </p>
+              <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl">The ultimate platform for managing your AI prompts with team collaboration. </p>
             </div>
             
             <div className="w-full max-w-3xl">
@@ -113,8 +95,7 @@ const Index = () => {
             </div>
             
             <div className="flex gap-4">
-              {user ? (
-                <>
+              {user ? <>
                   <Link to="/my-prompts">
                     <Button className="bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90">
                       My Prompts
@@ -125,14 +106,11 @@ const Index = () => {
                       Create Prompt
                     </Button>
                   </Link>
-                </>
-              ) : (
-                <Link to="/auth">
+                </> : <Link to="/auth">
                   <Button className="bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90">
                     Get Started Free
                   </Button>
-                </Link>
-              )}
+                </Link>}
               <Link to="/explore">
                 <Button variant="outline">
                   Explore Prompts
@@ -155,18 +133,7 @@ const Index = () => {
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredPrompts.map((prompt) => (
-                <PromptCard 
-                  key={prompt.id}
-                  id={prompt.id}
-                  title={prompt.title}
-                  description={prompt.description}
-                  llm={prompt.llm}
-                  useCase={prompt.useCase}
-                  upvotes={prompt.upvotes}
-                  author={prompt.author}
-                />
-              ))}
+              {featuredPrompts.map(prompt => <PromptCard key={prompt.id} id={prompt.id} title={prompt.title} description={prompt.description} llm={prompt.llm} useCase={prompt.useCase} upvotes={prompt.upvotes} author={prompt.author} />)}
             </div>
           </div>
         </div>
@@ -310,8 +277,6 @@ const Index = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
