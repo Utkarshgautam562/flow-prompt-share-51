@@ -26,6 +26,7 @@ const BackButton: React.FC<BackButtonProps> = ({ className, to }) => {
       size="sm" 
       className={`flex items-center gap-1 hover:bg-transparent ${className || ''}`}
       onClick={handleGoBack}
+      type="button"
     >
       <ArrowLeft size={16} />
       <span>Back</span>

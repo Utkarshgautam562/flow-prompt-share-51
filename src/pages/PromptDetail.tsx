@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,7 +45,7 @@ const PromptDetail = () => {
           profiles: data.profiles as { username: string },
           llm_settings: data.llm_settings as { model: string; temperature: number },
           is_public: data.is_public || false,
-          is_shared: false  // Default to false since it may not exist in the database yet
+          is_shared: data.is_shared || false  // Set default value if missing
         };
         
         setPrompt(promptData);
@@ -126,6 +127,9 @@ const PromptDetail = () => {
   const isOwner = user && user.id === prompt.user_id;
   const metaDescription = `${prompt.title} - A prompt optimized for ${prompt.llm_settings.model}`;
 
+  // Only display temperature badge if it's not the default value of 0.7
+  const shouldShowTemperature = prompt.llm_settings.temperature !== 0.7;
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <Helmet>
@@ -138,7 +142,7 @@ const PromptDetail = () => {
         <meta property="twitter:card" content="summary_large_image" />
       </Helmet>
       
-      <BackButton className="mb-4" />
+      <BackButton className="mb-4" to="/" />
       
       <Card className="shadow-md">
         <CardHeader>
@@ -187,9 +191,12 @@ const PromptDetail = () => {
               <Tag size={12} />
               {prompt.llm_settings.model || 'GPT-4'}
             </Badge>
-            <Badge variant="outline" className="bg-blue-50 px-3 py-1">
-              Temperature: {prompt.llm_settings.temperature || 0.7}
-            </Badge>
+            
+            {shouldShowTemperature && (
+              <Badge variant="outline" className="bg-blue-50 px-3 py-1">
+                Temperature: {prompt.llm_settings.temperature}
+              </Badge>
+            )}
             
             {collections.length > 0 && collections.map(collection => (
               <HoverCard key={collection.id}>
@@ -219,15 +226,7 @@ const PromptDetail = () => {
             </div>
           </div>
 
-          <div className="pt-4">
-            <h3 className="font-semibold text-lg mb-3">How to Use This Prompt</h3>
-            <ol className="list-decimal pl-5 space-y-2">
-              <li>Copy the prompt using the copy button above</li>
-              <li>Paste it into your preferred AI assistant</li>
-              <li>Modify any placeholders with your specific information</li>
-              <li>Run the prompt and get high-quality results</li>
-            </ol>
-          </div>
+          {/* "How to Use This Prompt" section has been removed */}
         </CardContent>
         
         <CardFooter className="flex justify-between items-center border-t pt-6">

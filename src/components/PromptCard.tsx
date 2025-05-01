@@ -11,7 +11,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Copy, Eye } from 'lucide-react';
+import { Heart, Copy, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLikes } from '@/hooks/useLikes';
 
@@ -144,9 +144,9 @@ const PromptCard: React.FC<PromptCardProps> = ({
                 onClick={handleLikeClick}
                 variant={isLiked ? "secondary" : "ghost"} 
                 size="sm" 
-                className="h-8 gap-1 text-xs"
+                className={isLiked ? "h-8 gap-1 text-xs bg-pink-100 text-pink-600 hover:bg-pink-200 hover:text-pink-700" : "h-8 gap-1 text-xs"}
               >
-                <Sparkles size={14} />
+                <Heart size={14} className={`${isLiked ? "fill-pink-600" : ""}`} />
                 <span>{likesCount}</span>
               </Button>
               <Button 

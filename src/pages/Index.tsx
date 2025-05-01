@@ -4,9 +4,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import SearchBar, { SearchFilters } from '@/components/SearchBar';
 import PromptCard from '@/components/PromptCard';
-import FolderStructure from '@/components/FolderStructure';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Sparkles, Brain, Puzzle, Zap, Code, MessageSquare } from 'lucide-react';
 
 // Mock data for demonstration
 const featuredPrompts = [
@@ -45,61 +46,6 @@ const featuredPrompts = [
     useCase: 'Development', 
     upvotes: 72, 
     author: 'tech_writer' 
-  }
-];
-
-// Mock folder structure data
-const folderStructure = [
-  {
-    id: 'f1',
-    name: 'Marketing',
-    type: 'folder' as const,
-    children: [
-      {
-        id: 'f1-1',
-        name: 'SEO',
-        type: 'folder' as const,
-        children: [
-          {
-            id: 'p1',
-            name: 'Keyword Research',
-            type: 'prompt' as const,
-            llm: 'GPT-4'
-          },
-          {
-            id: 'p2',
-            name: 'Meta Description',
-            type: 'prompt' as const,
-            llm: 'Claude 3'
-          }
-        ]
-      },
-      {
-        id: 'p3',
-        name: 'Social Media Post',
-        type: 'prompt' as const,
-        llm: 'GPT-4'
-      }
-    ]
-  },
-  {
-    id: 'f2',
-    name: 'Development',
-    type: 'folder' as const,
-    children: [
-      {
-        id: 'p4',
-        name: 'Code Refactoring',
-        type: 'prompt' as const,
-        llm: 'GPT-4'
-      },
-      {
-        id: 'p5',
-        name: 'Bug Fix Helper',
-        type: 'prompt' as const,
-        llm: 'Claude 3'
-      }
-    ]
   }
 ];
 
@@ -196,73 +142,128 @@ const Index = () => {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {featuredPrompts.map((prompt) => (
-                <div key={prompt.id} className="pointer-events-none">
-                  <PromptCard 
-                    id={prompt.id}
-                    title={prompt.title}
-                    description={prompt.description}
-                    llm={prompt.llm}
-                    useCase={prompt.useCase}
-                    upvotes={prompt.upvotes}
-                    author={prompt.author}
-                  />
-                </div>
+                <PromptCard 
+                  key={prompt.id}
+                  id={prompt.id}
+                  title={prompt.title}
+                  description={prompt.description}
+                  llm={prompt.llm}
+                  useCase={prompt.useCase}
+                  upvotes={prompt.upvotes}
+                  author={prompt.author}
+                />
               ))}
             </div>
           </div>
         </div>
       </section>
       
-      {/* Organization and Workflow Section */}
+      {/* Features Section (Replaces Folder Structure) */}
       <section className="py-16 bg-gray-50">
         <div className="container px-4 md:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <h2 className="text-3xl font-bold tracking-tight">
-                Organize Your Prompts with Smart Folders
-              </h2>
-              <p className="text-gray-500">
-                Create nested folder structures with drag-and-drop simplicity. 
-                Manage permissions and collaborate with your team, all in one place.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-center">
-                  <span className="bg-green-100 text-green-700 p-1 rounded-full mr-2">✓</span>
-                  <span>AI-powered tagging and organization</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="bg-green-100 text-green-700 p-1 rounded-full mr-2">✓</span>
-                  <span>Version history with restore points</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="bg-green-100 text-green-700 p-1 rounded-full mr-2">✓</span>
-                  <span>Team collaboration with role-based permissions</span>
-                </li>
-              </ul>
-              {user ? (
-                <Link to="/my-prompts">
-                  <Button className="bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90">
-                    Start Organizing
-                  </Button>
-                </Link>
-              ) : (
-                <Link to="/auth">
-                  <Button className="bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90">
-                    Start Organizing
-                  </Button>
-                </Link>
-              )}
-            </div>
-            
-            <div className="relative">
-              <div className="border rounded-lg shadow-lg bg-white p-4">
-                <h3 className="text-lg font-semibold mb-4">My Prompt Library</h3>
-                <FolderStructure 
-                  items={folderStructure} 
-                  onSelectItem={(item) => console.log('Selected item:', item)}
-                />
-              </div>
-            </div>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tight mb-3">
+              Supercharge Your AI Prompt Workflow
+            </h2>
+            <p className="text-gray-500 max-w-2xl mx-auto">
+              Our platform provides everything you need to create, manage, and optimize your AI prompts
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center mb-4">
+                  <Sparkles className="h-6 w-6 text-purple-600" />
+                </div>
+                <CardTitle className="text-xl">Optimize Your Prompts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500">
+                  Use our AI-powered tools to analyze and improve your prompts for better results across different LLMs.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center mb-4">
+                  <Brain className="h-6 w-6 text-blue-600" />
+                </div>
+                <CardTitle className="text-xl">Collaborative Workspace</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500">
+                  Share and collaborate on prompts with your team. Track changes, leave comments, and work together.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center mb-4">
+                  <Puzzle className="h-6 w-6 text-green-600" />
+                </div>
+                <CardTitle className="text-xl">Prompt Templates</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500">
+                  Start with our library of templates for different use cases and customize them to your needs.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+            <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="h-12 w-12 rounded-lg bg-amber-100 flex items-center justify-center mb-4">
+                  <Zap className="h-6 w-6 text-amber-600" />
+                </div>
+                <CardTitle className="text-xl">Version Control</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500">
+                  Keep track of prompt iterations with built-in version history. Roll back changes anytime.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="h-12 w-12 rounded-lg bg-red-100 flex items-center justify-center mb-4">
+                  <Code className="h-6 w-6 text-red-600" />
+                </div>
+                <CardTitle className="text-xl">API Integration</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500">
+                  Deploy prompts directly to applications via our API. Seamless integration with your existing tools.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="h-12 w-12 rounded-lg bg-indigo-100 flex items-center justify-center mb-4">
+                  <MessageSquare className="h-6 w-6 text-indigo-600" />
+                </div>
+                <CardTitle className="text-xl">Analytics & Insights</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500">
+                  Gain insights into prompt performance, usage patterns, and opportunities for improvement.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="mt-12 text-center">
+            <Link to={user ? "/my-prompts" : "/auth"}>
+              <Button className="bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90 px-8">
+                {user ? "Go to Dashboard" : "Get Started Today"}
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
