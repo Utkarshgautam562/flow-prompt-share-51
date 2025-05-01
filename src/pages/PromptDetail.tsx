@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,7 +44,8 @@ const PromptDetail = () => {
           ...data,
           profiles: data.profiles as { username: string },
           llm_settings: data.llm_settings as { model: string; temperature: number },
-          is_shared: data.is_shared
+          is_shared: data.is_shared || false, // Provide default value
+          is_public: data.is_public || false  // Provide default value
         };
         
         setPrompt(promptData);

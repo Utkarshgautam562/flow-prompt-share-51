@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from '@/components/ui/toaster';
@@ -23,59 +23,57 @@ import CollectionView from './pages/CollectionView';
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/explore" element={<Explore />} />
-          <Route path="/prompt/:id" element={<PromptDetail />} />
-          <Route path="/user/:id" element={<UserProfile />} />
-          <Route path="/collection/shared/:shareId" element={<CollectionView />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/disclaimer" element={<Disclaimer />} />
-          <Route path="/cookie-policy" element={<CookiePolicy />} />
-          
-          {/* Protected routes */}
-          <Route 
-            path="/my-prompts" 
-            element={
-              <ProtectedRoute>
-                <MyPrompts />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/create-prompt" 
-            element={
-              <ProtectedRoute>
-                <CreatePrompt />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/edit-prompt/:id" 
-            element={
-              <ProtectedRoute>
-                <CreatePrompt isEditing={true} />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/collection/:id" 
-            element={
-              <ProtectedRoute>
-                <CollectionView />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* 404 route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster />
-      </Router>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/explore" element={<Explore />} />
+        <Route path="/prompt/:id" element={<PromptDetail />} />
+        <Route path="/user/:id" element={<UserProfile />} />
+        <Route path="/collection/shared/:shareId" element={<CollectionView />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/disclaimer" element={<Disclaimer />} />
+        <Route path="/cookie-policy" element={<CookiePolicy />} />
+        
+        {/* Protected routes */}
+        <Route 
+          path="/my-prompts" 
+          element={
+            <ProtectedRoute>
+              <MyPrompts />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/create-prompt" 
+          element={
+            <ProtectedRoute>
+              <CreatePrompt />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/edit-prompt/:id" 
+          element={
+            <ProtectedRoute>
+              <CreatePrompt isEditing={true} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/collection/:id" 
+          element={
+            <ProtectedRoute>
+              <CollectionView />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* 404 route */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <Toaster />
     </AuthProvider>
   );
 }
