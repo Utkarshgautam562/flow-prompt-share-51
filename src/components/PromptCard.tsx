@@ -38,7 +38,7 @@ const PromptCard: React.FC<PromptCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
-  const { isLiked, likesCount, toggleLike } = useLikes(id, upvotes);
+  const { isLiked, likesCount, toggleLike } = useLikes(id);
 
   const handleViewClick = () => {
     navigate(`/prompt/${id}`);

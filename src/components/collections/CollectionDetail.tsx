@@ -1,21 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Share2, Pencil, ArrowLeft, FolderOpen } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { FolderOpen, Share2, Edit, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import PromptCard from '../PromptCard';
-import BackButton from '../BackButton';
+import { Button } from '@/components/ui/button';
 
 interface Prompt {
   id: string;
   title: string;
   content: string;
-  llm_settings: {
-    model: string;
-  };
+  llm_settings: { model: string };
   user_id: string;
   username?: string;
 }
@@ -24,20 +20,17 @@ interface Collection {
   id: string;
   name: string;
   description: string | null;
+  user_id: string;
   is_shared: boolean;
   share_id: string;
-  created_at: string;
-  user_id: string;
 }
 
 const CollectionDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [collection, setCollection] = useState<Collection | null>(null);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     const fetchCollection = async () => {
@@ -46,7 +39,7 @@ const CollectionDetail = () => {
       try {
         setIsLoading(true);
         
-        // First, fetch the collection details
+        // Fetch collection
         const { data: collectionData, error: collectionError } = await supabase
           .from('collections')
           .select('*')
@@ -54,16 +47,10 @@ const CollectionDetail = () => {
           .single();
         
         if (collectionError) throw collectionError;
-        if (!collectionData) {
-          toast.error('Collection not found');
-          navigate('/my-prompts');
-          return;
-        }
         
         setCollection(collectionData);
-        setIsOwner(user?.id === collectionData.user_id);
         
-        // Then, fetch all prompts in this collection
+        // Fetch prompts in this collection
         const { data: promptCollections, error: promptsError } = await supabase
           .from('prompt_collections')
           .select('prompt_id')
@@ -81,12 +68,14 @@ const CollectionDetail = () => {
           
           if (promptDetailsError) throw promptDetailsError;
           
-          // Format the data to match what PromptCard expects
+          // Format the data
           const formattedPrompts = promptsData?.map(p => ({
             id: p.id,
             title: p.title,
             content: p.content,
-            llm_settings: p.llm_settings,
+            llm_settings: typeof p.llm_settings === 'object' ? 
+              { model: p.llm_settings?.model || 'Unknown' } : 
+              { model: 'Unknown' },
             user_id: p.user_id,
             username: p.profiles?.username
           }));
@@ -96,106 +85,155 @@ const CollectionDetail = () => {
           setPrompts([]);
         }
       } catch (error: any) {
-        console.error('Error fetching collection details:', error);
-        toast.error(`Failed to load collection: ${error.message}`);
+        console.error('Error fetching collection:', error);
+        toast.error('Failed to load collection');
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchCollection();
-  }, [id, navigate, user]);
+  }, [id]);
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (!collection) return;
     
-    const shareUrl = `${window.location.origin}/collection/${collection.share_id}`;
-    navigator.clipboard.writeText(shareUrl);
-    toast.success('Collection link copied to clipboard!');
+    try {
+      // Toggle sharing status
+      const newIsShared = !collection.is_shared;
+      
+      const { error } = await supabase
+        .from('collections')
+        .update({ is_shared: newIsShared })
+        .eq('id', collection.id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setCollection({
+        ...collection,
+        is_shared: newIsShared
+      });
+      
+      if (newIsShared) {
+        // Copy shareable link
+        const shareUrl = `${window.location.origin}/collection/shared/${collection.share_id}`;
+        navigator.clipboard.writeText(shareUrl);
+        toast.success('Collection is now public and link copied to clipboard!');
+      } else {
+        toast.success('Collection is now private');
+      }
+    } catch (error: any) {
+      console.error('Error updating collection sharing:', error);
+      toast.error(`Failed to update sharing: ${error.message}`);
+    }
   };
 
   const handleEdit = () => {
-    if (!collection || !isOwner) return;
+    // Implement edit functionality
+    toast.info('Edit functionality coming soon');
+  };
+
+  const handleDelete = async () => {
+    if (!collection || !window.confirm('Are you sure you want to delete this collection?')) return;
     
-    // TODO: Implement edit functionality or navigate to edit page
-    toast.info('Edit collection feature coming soon!');
+    try {
+      // First delete all prompt_collection entries
+      const { error: deletePromptCollectionsError } = await supabase
+        .from('prompt_collections')
+        .delete()
+        .eq('collection_id', collection.id);
+      
+      if (deletePromptCollectionsError) throw deletePromptCollectionsError;
+      
+      // Then delete the collection
+      const { error: deleteCollectionError } = await supabase
+        .from('collections')
+        .delete()
+        .eq('id', collection.id);
+      
+      if (deleteCollectionError) throw deleteCollectionError;
+      
+      toast.success('Collection deleted successfully');
+      navigate('/my-prompts');
+    } catch (error: any) {
+      console.error('Error deleting collection:', error);
+      toast.error(`Failed to delete collection: ${error.message}`);
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="flex flex-col items-center justify-center h-64">
-          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-500">Loading collection...</p>
-        </div>
+      <div className="flex flex-col items-center justify-center h-64">
+        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-gray-500">Loading collection...</p>
       </div>
     );
   }
 
   if (!collection) {
     return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600">Collection Not Found</h1>
-          <p className="mt-4 text-gray-500">The collection you're looking for doesn't exist or you don't have permission to view it.</p>
-          <Button onClick={() => navigate('/my-prompts')} className="mt-4">
-            Back to My Prompts
-          </Button>
-        </div>
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-red-600">Collection Not Found</h1>
+        <p className="mt-4 text-gray-500">The collection you're looking for doesn't exist or has been removed.</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="w-full">
       <div className="mb-6">
-        <BackButton to="/my-prompts" />
-        
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center gap-2">
-            <FolderOpen size={24} className="text-promptflow-blue" />
-            <h1 className="text-2xl font-bold">{collection.name}</h1>
-          </div>
-          
-          {isOwner && (
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleEdit} 
-                className="flex items-center gap-1"
-              >
-                <Pencil size={16} />
-                <span>Edit</span>
-              </Button>
-              {collection.is_shared && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleShare} 
-                  className="flex items-center gap-1"
-                >
-                  <Share2 size={16} />
-                  <span>Share</span>
-                </Button>
-              )}
-            </div>
+        <div className="flex items-center gap-3 mb-2">
+          <FolderOpen size={24} className="text-blue-600" />
+          <h1 className="text-2xl font-bold">{collection.name}</h1>
+          {collection.is_shared && (
+            <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">Public</span>
           )}
         </div>
         
         {collection.description && (
-          <p className="mt-2 text-gray-600">{collection.description}</p>
+          <p className="text-gray-600 mb-4">{collection.description}</p>
         )}
+        
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleShare} 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-1"
+          >
+            <Share2 size={16} />
+            {collection.is_shared ? 'Copy Share Link' : 'Share Collection'}
+          </Button>
+          
+          <Button 
+            onClick={handleEdit}
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-1"
+          >
+            <Edit size={16} />
+            Edit
+          </Button>
+          
+          <Button 
+            onClick={handleDelete}
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash size={16} />
+            Delete
+          </Button>
+        </div>
       </div>
       
       {prompts.length === 0 ? (
         <div className="bg-gray-50 border rounded-lg p-10 text-center">
           <h2 className="text-xl text-gray-600">No prompts in this collection</h2>
-          {isOwner && (
-            <p className="mt-2 text-gray-500">
-              Add prompts to this collection from the My Prompts page.
-            </p>
-          )}
+          <p className="mt-2 text-gray-500">
+            Add prompts to this collection when creating or editing prompts.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -209,7 +247,6 @@ const CollectionDetail = () => {
               useCase="General"
               upvotes={0}
               author={prompt.username || "User"}
-              showViewButton={true}
             />
           ))}
         </div>

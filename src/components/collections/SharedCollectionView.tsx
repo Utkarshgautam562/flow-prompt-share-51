@@ -13,9 +13,7 @@ interface Prompt {
   id: string;
   title: string;
   content: string;
-  llm_settings: {
-    model: string;
-  };
+  llm_settings: { model: string };
   user_id: string;
   username?: string;
 }
@@ -82,7 +80,9 @@ const SharedCollectionView = () => {
             id: p.id,
             title: p.title,
             content: p.content,
-            llm_settings: p.llm_settings,
+            llm_settings: typeof p.llm_settings === 'object' ? 
+              { model: p.llm_settings?.model || 'Unknown' } : 
+              { model: 'Unknown' },
             user_id: p.user_id,
             username: p.profiles?.username
           }));
