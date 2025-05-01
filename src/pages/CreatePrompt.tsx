@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -176,8 +175,9 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
                 }
               }
               
-              // Provide a default value for is_shared since it might not exist in the database yet
-              const isShared = data.is_shared ?? false;
+              // Fix: Explicitly handle the case where is_shared might not exist in the database yet
+              // by providing a default value of false
+              const isShared = false; // Default to false if not present
               
               form.reset({
                 title: data.title || "",
