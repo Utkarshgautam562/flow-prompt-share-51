@@ -13,27 +13,26 @@ import CollectionsList from '@/components/collections/CollectionsList';
 import BackButton from '@/components/BackButton';
 import CollectionDetail from '@/components/collections/CollectionDetail';
 import AnonymousUserView from '@/components/profile/AnonymousUserView';
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from '@tanstack/react-query';
+import { Prompt } from '@/types/prompt';
 
 const MyPrompts = () => {
   const navigate = useNavigate();
   const { user, isAnonymous } = useAuth();
-  const [prompts, setPrompts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("prompts");
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchPrompts();
-  }, [user]);
-
-  const fetchPrompts = async () => {
-    if (isAnonymous || !user) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
+  // Use React Query for fetching prompts with caching and error handling
+  const { 
+    data: prompts = [], 
+    isLoading, 
+    error, 
+    refetch 
+  } = useQuery({
+    queryKey: ['prompts', user?.id],
+    queryFn: async () => {
+      if (isAnonymous || !user) return [];
       
       const { data, error } = await supabase
         .from('prompts')
@@ -43,14 +42,20 @@ const MyPrompts = () => {
       
       if (error) throw error;
       
-      setPrompts(data || []);
-    } catch (error: any) {
-      console.error('Error fetching prompts:', error);
+      return data || [];
+    },
+    // Only run this query if user is logged in
+    enabled: !!user && !isAnonymous,
+    // Cache for 5 minutes
+    staleTime: 1000 * 60 * 5,
+    // Retry 3 times before considering an error
+    retry: 3,
+    // Show error toast automatically
+    onError: (err: any) => {
+      console.error('Error fetching prompts:', err);
       toast.error('Failed to load your prompts');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  });
 
   const handleCreatePrompt = () => {
     navigate('/create-prompt');
@@ -65,6 +70,7 @@ const MyPrompts = () => {
     setSelectedCollection(null);
   };
 
+  // Show login view for anonymous users
   if (isAnonymous) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -110,8 +116,21 @@ const MyPrompts = () => {
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="h-60 bg-gray-200 rounded-lg animate-pulse"></div>
+                  <Skeleton key={i} className="h-60 w-full rounded-lg" />
                 ))}
+              </div>
+            ) : error ? (
+              <div className="text-center p-10 bg-white rounded-lg border border-gray-200">
+                <h2 className="text-xl font-semibold mb-2 text-red-500">Error loading prompts</h2>
+                <p className="text-gray-500 mb-6">
+                  We encountered a problem loading your prompts
+                </p>
+                <Button 
+                  onClick={() => refetch()}
+                  variant="outline"
+                >
+                  Try Again
+                </Button>
               </div>
             ) : prompts.length === 0 ? (
               <div className="text-center p-10 bg-white rounded-lg border border-gray-200">
@@ -128,7 +147,7 @@ const MyPrompts = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {prompts.map((prompt) => {
+                {prompts.map((prompt: Prompt) => {
                   // Extract model from llm_settings safely
                   let modelName = "Unknown";
                   try {
@@ -169,7 +188,7 @@ const MyPrompts = () => {
                 >
                   ← Back to Collections
                 </Button>
-                <CollectionDetail />
+                <CollectionDetail collectionId={selectedCollection} />
               </div>
             ) : (
               <CollectionsList onCollectionClick={handleCollectionClick} />

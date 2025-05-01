@@ -1,269 +1,179 @@
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { FolderOpen, Share2, Edit, Trash } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import PromptCard from '../PromptCard';
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from '@tanstack/react-query';
+import PromptCard from '@/components/PromptCard';
 import { Button } from '@/components/ui/button';
-import { Json } from '@/integrations/supabase/types';
+import { Prompt } from '@/types/prompt';
 
-interface Prompt {
-  id: string;
-  title: string;
-  content: string;
-  llm_settings: Json;
-  user_id: string;
-  username?: string;
+interface CollectionDetailProps {
+  collectionId?: string;
+  shareId?: string;
 }
 
 interface Collection {
   id: string;
   name: string;
   description: string | null;
-  user_id: string;
   is_shared: boolean;
-  share_id: string;
+  user_id: string;
 }
 
-const CollectionDetail = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [collection, setCollection] = useState<Collection | null>(null);
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchCollection = async () => {
-      if (!id) return;
+const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
+  const params = useParams();
+  const { user } = useAuth();
+  const id = collectionId || params.id;
+  const sharedId = shareId || params.shareId;
+  
+  // Fetch collection details
+  const { 
+    data: collection,
+    isLoading: collectionLoading,
+    error: collectionError,
+  } = useQuery({
+    queryKey: ['collection', id, sharedId],
+    queryFn: async () => {
+      let query;
       
-      try {
-        setIsLoading(true);
-        
-        // Fetch collection
-        const { data: collectionData, error: collectionError } = await supabase
+      if (sharedId) {
+        query = supabase
+          .from('collections')
+          .select('*')
+          .eq('share_id', sharedId)
+          .eq('is_shared', true)
+          .single();
+      } else if (id) {
+        query = supabase
           .from('collections')
           .select('*')
           .eq('id', id)
-          .single();
-        
-        if (collectionError) throw collectionError;
-        
-        setCollection(collectionData);
-        
-        // Fetch prompts in this collection
-        const { data: promptCollections, error: promptsError } = await supabase
-          .from('prompt_collections')
-          .select('prompt_id')
-          .eq('collection_id', id);
-        
-        if (promptsError) throw promptsError;
-        
-        if (promptCollections && promptCollections.length > 0) {
-          const promptIds = promptCollections.map(pc => pc.prompt_id);
-          
-          const { data: promptsData, error: promptDetailsError } = await supabase
-            .from('prompts')
-            .select('*, profiles:user_id(username)')
-            .in('id', promptIds);
-          
-          if (promptDetailsError) throw promptDetailsError;
-          
-          // Format the data with proper type handling
-          const formattedPrompts = promptsData?.map(p => {
-            // Extract model from llm_settings safely
-            let modelName = "Unknown";
-            
-            if (p.llm_settings) {
-              // Handle llm_settings based on its structure
-              if (typeof p.llm_settings === 'object' && p.llm_settings !== null && !Array.isArray(p.llm_settings)) {
-                const settings = p.llm_settings as Record<string, Json>;
-                if ('model' in settings) {
-                  modelName = String(settings.model);
-                }
-              }
-            }
-            
-            return {
-              id: p.id,
-              title: p.title,
-              content: p.content,
-              llm_settings: p.llm_settings,
-              user_id: p.user_id,
-              username: p.profiles?.username,
-              modelName
-            };
-          });
-          
-          setPrompts(formattedPrompts || []);
-        } else {
-          setPrompts([]);
-        }
-      } catch (error: any) {
-        console.error('Error fetching collection:', error);
-        toast.error('Failed to load collection');
-      } finally {
-        setIsLoading(false);
+          .maybeSingle();
+      } else {
+        throw new Error('No collection ID or share ID provided');
       }
-    };
-
-    fetchCollection();
-  }, [id]);
-
-  const handleShare = async () => {
-    if (!collection) return;
-    
-    try {
-      // Toggle sharing status
-      const newIsShared = !collection.is_shared;
       
-      const { error } = await supabase
-        .from('collections')
-        .update({ is_shared: newIsShared })
-        .eq('id', collection.id);
+      const { data, error } = await query;
       
       if (error) throw error;
+      if (!data) throw new Error('Collection not found');
       
-      // Update local state
-      setCollection({
-        ...collection,
-        is_shared: newIsShared
-      });
+      return data as Collection;
+    },
+    enabled: !!(id || sharedId),
+  });
+  
+  // Fetch prompts in this collection
+  const { 
+    data: prompts = [],
+    isLoading: promptsLoading,
+    error: promptsError,
+  } = useQuery({
+    queryKey: ['collection-prompts', collection?.id],
+    queryFn: async () => {
+      if (!collection?.id) return [];
       
-      if (newIsShared) {
-        // Copy shareable link
-        const shareUrl = `${window.location.origin}/collection/shared/${collection.share_id}`;
-        navigator.clipboard.writeText(shareUrl);
-        toast.success('Collection is now public and link copied to clipboard!');
-      } else {
-        toast.success('Collection is now private');
-      }
-    } catch (error: any) {
-      console.error('Error updating collection sharing:', error);
-      toast.error(`Failed to update sharing: ${error.message}`);
-    }
-  };
-
-  const handleEdit = () => {
-    // Implement edit functionality
-    toast.info('Edit functionality coming soon');
-  };
-
-  const handleDelete = async () => {
-    if (!collection || !window.confirm('Are you sure you want to delete this collection?')) return;
-    
-    try {
-      // First delete all prompt_collection entries
-      const { error: deletePromptCollectionsError } = await supabase
+      // First get the prompt IDs from the junction table
+      const { data: promptConnections, error: connectionError } = await supabase
         .from('prompt_collections')
-        .delete()
+        .select('prompt_id')
         .eq('collection_id', collection.id);
       
-      if (deletePromptCollectionsError) throw deletePromptCollectionsError;
+      if (connectionError) throw connectionError;
+      if (!promptConnections?.length) return [];
       
-      // Then delete the collection
-      const { error: deleteCollectionError } = await supabase
-        .from('collections')
-        .delete()
-        .eq('id', collection.id);
+      const promptIds = promptConnections.map(conn => conn.prompt_id);
       
-      if (deleteCollectionError) throw deleteCollectionError;
+      // Then fetch the actual prompts
+      const { data: promptsData, error: promptsError } = await supabase
+        .from('prompts')
+        .select('*, profiles:user_id(username)')
+        .in('id', promptIds);
       
-      toast.success('Collection deleted successfully');
-      navigate('/my-prompts');
-    } catch (error: any) {
-      console.error('Error deleting collection:', error);
-      toast.error(`Failed to delete collection: ${error.message}`);
-    }
-  };
-
+      if (promptsError) throw promptsError;
+      
+      return promptsData || [];
+    },
+    enabled: !!collection?.id,
+  });
+  
+  const isLoading = collectionLoading || promptsLoading;
+  const error = collectionError || promptsError;
+  
+  if (error) {
+    toast.error('Error loading collection data');
+    console.error('Collection loading error:', error);
+    return (
+      <div className="p-8 text-center bg-white rounded-lg shadow">
+        <h2 className="text-xl font-semibold text-red-500 mb-4">Error Loading Collection</h2>
+        <p className="text-gray-600 mb-4">We encountered a problem loading this collection.</p>
+        <Button 
+          onClick={() => window.location.reload()}
+          variant="outline"
+        >
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+  
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-gray-500">Loading collection...</p>
+      <div className="space-y-6">
+        <Skeleton className="h-12 w-3/4 mb-4" />
+        <Skeleton className="h-6 w-1/2 mb-8" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-60 w-full rounded-lg" />
+          ))}
+        </div>
       </div>
     );
   }
-
+  
   if (!collection) {
     return (
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-red-600">Collection Not Found</h1>
-        <p className="mt-4 text-gray-500">The collection you're looking for doesn't exist or has been removed.</p>
+      <div className="p-8 text-center bg-white rounded-lg shadow">
+        <h2 className="text-xl font-semibold mb-4">Collection Not Found</h2>
+        <p className="text-gray-600">This collection doesn't exist or you don't have permission to view it.</p>
       </div>
     );
   }
-
+  
+  const isOwner = user && user.id === collection.user_id;
+  
   return (
-    <div className="w-full">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <FolderOpen size={24} className="text-blue-600" />
-          <h1 className="text-2xl font-bold">{collection.name}</h1>
-          {collection.is_shared && (
-            <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">Public</span>
-          )}
-        </div>
-        
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-2">{collection.name}</h1>
         {collection.description && (
-          <p className="text-gray-600 mb-4">{collection.description}</p>
+          <p className="text-gray-600">{collection.description}</p>
         )}
-        
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleShare} 
-            variant="outline" 
-            size="sm"
-            className="flex items-center gap-1"
-          >
-            <Share2 size={16} />
-            {collection.is_shared ? 'Copy Share Link' : 'Share Collection'}
-          </Button>
-          
-          <Button 
-            onClick={handleEdit}
-            variant="outline" 
-            size="sm"
-            className="flex items-center gap-1"
-          >
-            <Edit size={16} />
-            Edit
-          </Button>
-          
-          <Button 
-            onClick={handleDelete}
-            variant="outline" 
-            size="sm"
-            className="flex items-center gap-1 text-red-500 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash size={16} />
-            Delete
-          </Button>
-        </div>
       </div>
       
       {prompts.length === 0 ? (
-        <div className="bg-gray-50 border rounded-lg p-10 text-center">
-          <h2 className="text-xl text-gray-600">No prompts in this collection</h2>
-          <p className="mt-2 text-gray-500">
-            Add prompts to this collection when creating or editing prompts.
+        <div className="p-8 text-center bg-white rounded-lg border border-gray-200">
+          <h2 className="text-xl font-semibold mb-2">No Prompts in This Collection</h2>
+          <p className="text-gray-500">
+            {isOwner 
+              ? "Add prompts to this collection when creating or editing a prompt." 
+              : "This collection is currently empty."}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {prompts.map((prompt) => {
-            // Extract model from llm_settings again for rendering
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {prompts.map((prompt: any) => {
             let modelName = "Unknown";
-            
-            if (prompt.llm_settings) {
-              // Handle llm_settings based on its structure
-              if (typeof prompt.llm_settings === 'object' && prompt.llm_settings !== null && !Array.isArray(prompt.llm_settings)) {
-                const settings = prompt.llm_settings as Record<string, Json>;
-                if ('model' in settings) {
-                  modelName = String(settings.model);
-                }
+            try {
+              if (prompt.llm_settings && typeof prompt.llm_settings === 'object') {
+                const settings = prompt.llm_settings as { model?: string };
+                modelName = settings.model || "Unknown";
               }
+            } catch (e) {
+              console.error("Error parsing llm_settings:", e);
             }
             
             return (
@@ -275,7 +185,8 @@ const CollectionDetail = () => {
                 llm={modelName}
                 useCase="General"
                 upvotes={0}
-                author={prompt.username || "User"}
+                author={prompt.profiles?.username || "Anonymous"}
+                showViewButton={true}
               />
             );
           })}

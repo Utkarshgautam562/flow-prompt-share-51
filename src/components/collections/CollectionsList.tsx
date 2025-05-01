@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +20,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import FolderStructure from '../FolderStructure';
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Collection {
   id: string;
@@ -37,15 +39,123 @@ interface CollectionsListProps {
 const CollectionsList: React.FC<CollectionsListProps> = ({ onCollectionClick }) => {
   const navigate = useNavigate();
   const { user, isAnonymous } = useAuth();
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCollection, setEditingCollection] = useState<Collection | null>(null);
+  const queryClient = useQueryClient();
   
   // Form state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isShared, setIsShared] = useState(false);
+
+  // Use React Query to fetch collections with caching
+  const { 
+    data: collections = [], 
+    isLoading, 
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['collections', user?.id],
+    queryFn: async () => {
+      if (isAnonymous || !user) return [];
+      
+      const { data, error } = await supabase
+        .from('collections')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data as Collection[] || [];
+    },
+    enabled: !!user && !isAnonymous,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    retry: 3,
+    onError: (error: any) => {
+      console.error('Error fetching collections:', error);
+      toast.error(`Failed to load collections: ${error.message}`);
+    }
+  });
+
+  // Create/update collection mutation
+  const saveCollectionMutation = useMutation({
+    mutationFn: async (collection: {
+      id?: string;
+      name: string;
+      description: string | null;
+      is_shared: boolean;
+      user_id: string;
+    }) => {
+      if (collection.id) {
+        // Update existing collection
+        const { error } = await supabase
+          .from('collections')
+          .update({
+            name: collection.name,
+            description: collection.description,
+            is_shared: collection.is_shared
+          })
+          .eq('id', collection.id);
+        
+        if (error) throw error;
+        return collection;
+      } else {
+        // Create new collection
+        const { error } = await supabase
+          .from('collections')
+          .insert([{
+            user_id: collection.user_id,
+            name: collection.name,
+            description: collection.description || null,
+            is_shared: collection.is_shared
+          }]);
+        
+        if (error) throw error;
+        return collection;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections', user?.id] });
+      toast.success(editingCollection ? "Collection updated" : "Collection created");
+      setIsDialogOpen(false);
+    },
+    onError: (error: any) => {
+      console.error('Error saving collection:', error);
+      toast.error(`Failed to save: ${error.message}`);
+    }
+  });
+  
+  // Delete collection mutation
+  const deleteCollectionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // First delete all prompt associations
+      const { error: deleteAssociationsError } = await supabase
+        .from('prompt_collections')
+        .delete()
+        .eq('collection_id', id);
+      
+      if (deleteAssociationsError) throw deleteAssociationsError;
+      
+      // Then delete the collection itself
+      const { error } = await supabase
+        .from('collections')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections', user?.id] });
+      toast.success("Collection deleted successfully");
+    },
+    onError: (error: any) => {
+      console.error('Error deleting collection:', error);
+      toast.error(`Failed to delete: ${error.message}`);
+    }
+  });
 
   // Convert collections to format expected by FolderStructure
   const getFolderItems = () => {
@@ -56,36 +166,6 @@ const CollectionsList: React.FC<CollectionsListProps> = ({ onCollectionClick }) 
       children: [] // We'll populate this later when viewing a collection
     }));
   };
-
-  const fetchCollections = async () => {
-    if (isAnonymous || !user) {
-      setCollections([]);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('collections')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      setCollections(data || []);
-    } catch (error: any) {
-      console.error('Error fetching collections:', error);
-      toast.error(`Failed to load collections: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCollections();
-  }, [user, isAnonymous]);
 
   const handleNewCollection = () => {
     setEditingCollection(null);
@@ -107,34 +187,12 @@ const CollectionsList: React.FC<CollectionsListProps> = ({ onCollectionClick }) 
     if (!confirm("Are you sure you want to delete this collection? Prompts in this collection will not be deleted.")) {
       return;
     }
-
-    try {
-      // First delete all prompt associations
-      const { error: deleteAssociationsError } = await supabase
-        .from('prompt_collections')
-        .delete()
-        .eq('collection_id', id);
-      
-      if (deleteAssociationsError) throw deleteAssociationsError;
-      
-      // Then delete the collection itself
-      const { error } = await supabase
-        .from('collections')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-      
-      toast.success("Collection deleted successfully");
-      fetchCollections();
-    } catch (error: any) {
-      console.error('Error deleting collection:', error);
-      toast.error(`Failed to delete collection: ${error.message}`);
-    }
+    
+    deleteCollectionMutation.mutate(id);
   };
 
   const handleShareCollection = (collection: Collection) => {
-    const shareUrl = `${window.location.origin}/collection/${collection.share_id}`;
+    const shareUrl = `${window.location.origin}/collection/shared/${collection.share_id}`;
     navigator.clipboard.writeText(shareUrl);
     toast.success("Collection link copied to clipboard!");
   };
@@ -155,39 +213,14 @@ const CollectionsList: React.FC<CollectionsListProps> = ({ onCollectionClick }) 
         toast.error("You must be logged in");
         return;
       }
-
-      if (editingCollection) {
-        // Update existing collection
-        const { error } = await supabase
-          .from('collections')
-          .update({
-            name,
-            description,
-            is_shared: isShared
-          })
-          .eq('id', editingCollection.id);
-        
-        if (error) throw error;
-        
-        toast.success("Collection updated successfully");
-      } else {
-        // Create new collection
-        const { error } = await supabase
-          .from('collections')
-          .insert([{
-            user_id: user.id,
-            name,
-            description: description || null,
-            is_shared: isShared
-          }]);
-        
-        if (error) throw error;
-        
-        toast.success("Collection created successfully");
-      }
       
-      setIsDialogOpen(false);
-      fetchCollections();
+      saveCollectionMutation.mutate({
+        id: editingCollection?.id,
+        name,
+        description: description || null,
+        is_shared: isShared,
+        user_id: user.id
+      });
     } catch (error: any) {
       console.error('Error saving collection:', error);
       toast.error(`Failed to save collection: ${error.message}`);
@@ -202,11 +235,31 @@ const CollectionsList: React.FC<CollectionsListProps> = ({ onCollectionClick }) 
     }
   };
 
+  if (error) {
+    return (
+      <div className="p-6 text-center bg-white rounded-lg border border-red-200">
+        <h3 className="text-lg font-medium text-red-600 mb-2">Failed to load collections</h3>
+        <p className="text-gray-500 mb-4">There was a problem loading your collections.</p>
+        <Button 
+          onClick={() => refetch()} 
+          variant="outline"
+          className="mx-auto"
+        >
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between mb-4">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-10 w-40" />
+        </div>
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-10 bg-gray-200 rounded animate-pulse"></div>
+          <Skeleton key={i} className="h-16 w-full" />
         ))}
       </div>
     );
@@ -291,6 +344,7 @@ const CollectionsList: React.FC<CollectionsListProps> = ({ onCollectionClick }) 
                     size="sm"
                     onClick={() => handleDeleteCollection(collection.id)} 
                     className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                    disabled={deleteCollectionMutation.isPending}
                   >
                     <Trash2 size={16} />
                     <span className="sr-only">Delete</span>
@@ -354,11 +408,18 @@ const CollectionsList: React.FC<CollectionsListProps> = ({ onCollectionClick }) 
             <Button 
               variant="outline" 
               onClick={() => setIsDialogOpen(false)}
+              disabled={saveCollectionMutation.isPending}
             >
               Cancel
             </Button>
-            <Button onClick={handleSaveCollection} className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90">
-              {editingCollection ? 'Update' : 'Create'}
+            <Button 
+              onClick={handleSaveCollection} 
+              className="bg-gradient-to-r from-promptflow-purple to-promptflow-blue hover:opacity-90"
+              disabled={saveCollectionMutation.isPending}
+            >
+              {saveCollectionMutation.isPending 
+                ? 'Saving...' 
+                : (editingCollection ? 'Update' : 'Create')}
             </Button>
           </DialogFooter>
         </DialogContent>
