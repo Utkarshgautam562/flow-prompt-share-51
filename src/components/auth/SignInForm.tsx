@@ -66,7 +66,12 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSuccess, redirectTo }) => {
         setIsResetMode(false);
       } else {
         // Handle normal sign in
-        await signIn(email, password);
+        const { data, error } = await signIn(email, password);
+        
+        if (error) {
+          throw error;
+        }
+        
         toast.success('Signed in successfully');
         if (onSuccess) {
           onSuccess();

@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, AuthResponse, WeakPassword } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
 type AuthContextType = {
@@ -12,10 +12,11 @@ type AuthContextType = {
   isAnonymous: boolean;
   enableAnonymousMode: () => void;
   disableAnonymousMode: () => void;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, options?: { username?: string }) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<AuthResponse>;
+  signUp: (email: string, password: string, options?: { username?: string }) => Promise<AuthResponse>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  checkEmailExists: (email: string) => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -63,22 +64,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error, data } = await supabase.auth.signInWithPassword({
+    const response = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
-      throw error;
+    if (response.error) {
+      throw response.error;
     }
     
-    return data;
+    return response;
+  };
+
+  // Check if email already exists in the auth system
+  const checkEmailExists = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+        }
+      });
+      
+      // If there's no error with shouldCreateUser: false, the email exists
+      if (!error) {
+        return true;
+      }
+      
+      // Check specific error message that indicates email doesn't exist
+      if (error.message.includes("Email not confirmed") || 
+          error.message.includes("User already registered")) {
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Error checking email:", error);
+      return false;
+    }
   };
 
   const signUp = async (email: string, password: string, options?: { username?: string }) => {
     try {
       // Try to sign up the user
-      const { error, data } = await supabase.auth.signUp({
+      const response = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -86,19 +115,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
       
-      if (error) {
+      if (response.error) {
         // If there's an error during signup, throw it
-        throw error;
+        throw response.error;
       }
       
       // If signup is successful and we have a username, we update the profile separately
-      if (options?.username && data?.user) {
+      if (options?.username && response.data?.user) {
         try {
           // Update the profile with username
           const { error: profileError } = await supabase
             .from('profiles')
             .upsert({ 
-              id: data.user.id, 
+              id: response.data.user.id, 
               username: options.username 
             });
             
@@ -111,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       
-      return data;
+      return response;
     } catch (error) {
       throw error;
     }
@@ -159,6 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     resetPassword,
+    checkEmailExists,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface SignUpFormProps {
   onSuccess?: () => void;
@@ -14,7 +13,7 @@ interface SignUpFormProps {
 }
 
 const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, setActiveTab }) => {
-  const { signUp } = useAuth();
+  const { signUp, checkEmailExists } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   // Form states
@@ -35,34 +34,6 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, setActiveTab }) => {
     }
     setUsernameError('');
     return true;
-  };
-
-  // Check if email already exists
-  const checkEmailExists = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-        }
-      });
-      
-      // If there's no error with shouldCreateUser: false, the email exists
-      if (!error) {
-        return true;
-      }
-      
-      // Check specific error message that indicates email doesn't exist
-      if (error.message.includes("Email not confirmed") || 
-          error.message.includes("User already registered")) {
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error("Error checking email:", error);
-      return false;
-    }
   };
   
   const handleSignUp = async (e: React.FormEvent) => {
@@ -97,7 +68,12 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, setActiveTab }) => {
       }
 
       // Create the user account
-      await signUp(email, password);
+      const { error } = await signUp(email, password, username ? { username } : undefined);
+      
+      if (error) {
+        throw error;
+      }
+      
       toast.success('Account created successfully! Check your email for confirmation');
       
       if (setActiveTab) {
