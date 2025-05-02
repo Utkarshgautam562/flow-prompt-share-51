@@ -27,8 +27,8 @@ export default defineConfig(({ mode }) => ({
     cssMinify: true,
     terserOptions: {
       compress: {
-        drop_console: true,
-        drop_debugger: true,
+        drop_console: mode === 'production', // Only drop console in production
+        drop_debugger: mode === 'production', // Only drop debugger in production
       },
     },
     rollupOptions: {
