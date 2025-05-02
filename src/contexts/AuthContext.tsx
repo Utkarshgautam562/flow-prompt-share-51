@@ -15,6 +15,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, options?: { username?: string }) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -119,6 +120,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/auth?reset=true',
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // We don't reveal if the email exists or not for security reasons
+      toast.success('If your email is registered, you will receive password reset instructions');
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      // Still show a success message even if there's an error, to prevent user enumeration
+      toast.success('If your email is registered, you will receive password reset instructions');
+      // However, log the error for debugging purposes
+      throw error;
+    }
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -139,6 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     signOut,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

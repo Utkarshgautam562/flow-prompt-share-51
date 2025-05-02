@@ -13,6 +13,16 @@ const Auth = () => {
   // Get the redirect path from location state or default to home
   const from = location.state?.from || '/';
   
+  // Check if we're in password reset mode from the URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const isReset = params.get('reset') === 'true';
+    
+    if (isReset) {
+      setActiveTab("signin"); // Ensure we're on the signin tab for password reset
+    }
+  }, [location]);
+  
   useEffect(() => {
     // If user is already logged in, redirect to the page they were trying to access
     if (user) {
