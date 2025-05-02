@@ -218,6 +218,8 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
         temperature: values.temperature
       };
       
+      let promptId = '';
+      
       if (isEditing && promptData) {
         // Update existing prompt
         const { error } = await supabase
@@ -234,8 +236,10 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
         
         if (error) throw error;
         
+        promptId = promptData.id;
+        
         // Handle collections for edited prompt
-        await updatePromptCollections(promptData.id, selectedCollections);
+        await updatePromptCollections(promptId, selectedCollections);
         
         // Invalidate and refetch the prompts query
         queryClient.invalidateQueries({ queryKey: ['prompts', user.id] });
@@ -260,11 +264,19 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
         if (error) throw error;
         
         if (data && data.length > 0) {
+          promptId = data[0].id;
+          
           // Add prompt to selected collections
-          await updatePromptCollections(data[0].id, selectedCollections);
+          await updatePromptCollections(promptId, selectedCollections);
           
           // Invalidate and refetch the prompts query
           queryClient.invalidateQueries({ queryKey: ['prompts', user.id] });
+          
+          // Also invalidate any collection queries to refresh their data
+          selectedCollections.forEach(collectionId => {
+            queryClient.invalidateQueries({ queryKey: ['collection-prompts', collectionId] });
+            queryClient.invalidateQueries({ queryKey: ['collection', collectionId] });
+          });
           
           toast.success('Prompt created successfully!');
         }
@@ -302,6 +314,12 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
           .insert(collectionsToInsert);
         
         if (insertError) throw insertError;
+        
+        // Invalidate collection queries to refresh the UI
+        collectionIds.forEach(collectionId => {
+          queryClient.invalidateQueries({ queryKey: ['collection-prompts', collectionId] });
+          queryClient.invalidateQueries({ queryKey: ['collection', collectionId] });
+        });
       }
     } catch (error) {
       console.error('Error updating prompt collections:', error);

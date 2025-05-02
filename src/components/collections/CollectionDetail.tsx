@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Skeleton } from "@/components/ui/skeleton";
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PromptCard from '@/components/PromptCard';
 import { Button } from '@/components/ui/button';
 import { Prompt } from '@/types/prompt';
@@ -29,6 +29,36 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
   const { user } = useAuth();
   const id = collectionId || params.id;
   const sharedId = shareId || params.shareId;
+  const queryClient = useQueryClient();
+  
+  // Subscribe to prompt_collections changes to automatically update the UI
+  useEffect(() => {
+    if (!collection?.id) return;
+    
+    // Set up a realtime subscription for changes to the prompt_collections table
+    const channel = supabase
+      .channel('collection-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'prompt_collections',
+          filter: `collection_id=eq.${collection.id}`,
+        },
+        (payload) => {
+          console.log('Prompt collection change detected:', payload);
+          // Invalidate and refetch the collection prompts query
+          queryClient.invalidateQueries({ queryKey: ['collection-prompts', collection.id] });
+        }
+      )
+      .subscribe();
+
+    // Clean up subscription when component unmounts or collection changes
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [collection?.id, queryClient]);
   
   // Fetch collection details
   const { 
@@ -235,6 +265,7 @@ const CollectionDetail = ({ collectionId, shareId }: CollectionDetailProps) => {
               upvotes={0}
               author={prompt.profiles?.username || "Anonymous"}
               showViewButton={true}
+              createdAt={prompt.created_at}
             />
           ))}
         </div>
