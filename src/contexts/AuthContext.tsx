@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -72,11 +73,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string, options?: { username?: string }) => {
-    // Check if email already exists
+    // Check if email already exists - fixing the type instantiation issue
     const { data: existingUsers, error: emailCheckError } = await supabase
       .from('profiles')
       .select('id')
-      .eq('email', email);
+      .eq('email', email)
+      .limit(1); // Add limit to constrain the query
     
     if (emailCheckError) {
       console.error('Error checking email:', emailCheckError);
