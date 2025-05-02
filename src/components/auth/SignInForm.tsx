@@ -74,10 +74,14 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSuccess, redirectTo }) => {
       }
     } catch (error: any) {
       console.error('Sign in error:', error);
-      if (!isResetMode) {
+      // Provide more user-friendly error messages
+      if (error.message.includes('Email not confirmed')) {
+        toast.error('Please check your email and verify your account before signing in');
+      } else if (error.message.includes('Invalid login credentials')) {
+        toast.error('Invalid email or password. Please try again.');
+      } else {
         toast.error(error.message || 'Failed to sign in');
       }
-      // For password reset, we already show a generic success message in the resetPassword function
     } finally {
       setIsLoading(false);
     }

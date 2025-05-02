@@ -40,21 +40,28 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, setActiveTab }) => {
   // Check if email already exists
   const checkEmailExists = async (email: string) => {
     try {
-      // Use password reset as a way to check if an email exists
-      // This is a workaround since Supabase doesn't provide a direct way to check
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/auth'
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+        }
       });
       
-      // If there's no error or the error doesn't mention the user doesn't exist,
-      // then the user likely exists
-      if (!error || !error.message.includes("For security purposes, you can't know if an account exists")) {
-        return true; // Email exists
+      // If there's no error with shouldCreateUser: false, the email exists
+      if (!error) {
+        return true;
       }
-      return false; // Email doesn't exist
+      
+      // Check specific error message that indicates email doesn't exist
+      if (error.message.includes("Email not confirmed") || 
+          error.message.includes("User already registered")) {
+        return true;
+      }
+      
+      return false;
     } catch (error) {
       console.error("Error checking email:", error);
-      return false; // Assume email doesn't exist on error
+      return false;
     }
   };
   
@@ -83,17 +90,15 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, setActiveTab }) => {
       if (emailExists) {
         toast.error('Email is already registered. Please sign in instead.');
         setIsLoading(false);
+        if (setActiveTab) {
+          setActiveTab("signin");
+        }
         return;
       }
 
       // Create the user account
       await signUp(email, password);
       toast.success('Account created successfully! Check your email for confirmation');
-      
-      // Update username separately after account creation
-      if (username) {
-        // We handle this in the AuthContext.tsx now, so no need to do anything here
-      }
       
       if (setActiveTab) {
         setActiveTab("signin");
