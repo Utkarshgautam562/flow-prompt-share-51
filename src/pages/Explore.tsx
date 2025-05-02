@@ -58,20 +58,28 @@ const Explore = () => {
       if (!collections || collections.length === 0) return;
       
       const collectionsIds = collections.map(collection => collection.id);
-      const { data, error } = await supabase
-        .from('prompt_collections')
-        .select('collection_id, count')
-        .in('collection_id', collectionsIds)
-        .select('collection_id')
-        .select('collection_id, count(*)')
-        .group('collection_id');
+      try {
+        // First, fetch all prompt_collections records for these collection IDs
+        const { data, error } = await supabase
+          .from('prompt_collections')
+          .select('collection_id, prompt_id')
+          .in('collection_id', collectionsIds);
+          
+        if (error) {
+          console.error('Error fetching collection prompt counts:', error);
+          return;
+        }
         
-      if (!error && data) {
-        const counts: Record<string, number> = {};
-        data.forEach(item => {
-          counts[item.collection_id] = item.count;
-        });
-        setCollectionPromptCounts(counts);
+        if (data) {
+          // Count the occurrences of each collection_id
+          const counts: Record<string, number> = {};
+          data.forEach(item => {
+            counts[item.collection_id] = (counts[item.collection_id] || 0) + 1;
+          });
+          setCollectionPromptCounts(counts);
+        }
+      } catch (err) {
+        console.error('Failed to fetch prompt counts:', err);
       }
     };
     
@@ -241,7 +249,7 @@ const Explore = () => {
                             description={collection.description}
                             author={collection.profiles?.username || 'Anonymous'}
                             createdAt={collection.created_at}
-                            isShared={collection.is_shared}
+                            isShared={collection.is_shared || false}
                             promptCount={collectionPromptCounts[collection.id] || 0}
                           />
                         ))}
@@ -285,7 +293,7 @@ const Explore = () => {
                       description={collection.description}
                       author={collection.profiles?.username || 'Anonymous'}
                       createdAt={collection.created_at}
-                      isShared={collection.is_shared}
+                      isShared={collection.is_shared || false}
                       promptCount={collectionPromptCounts[collection.id] || 0}
                     />
                   ))}

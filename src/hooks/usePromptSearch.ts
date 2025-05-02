@@ -14,11 +14,11 @@ export interface Collection {
   description: string | null;
   user_id: string;
   created_at: string;
-  is_shared: boolean;
+  is_shared: boolean | null;
   share_id: string | null;
   profiles?: {
-    username: string;
-  };
+    username: string | null;
+  } | null;
   type: 'collection'; // To differentiate from prompts
 }
 
@@ -85,12 +85,12 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
         // Process collections data
         collections = collectionsData ? collectionsData.map(item => ({
           ...item,
-          type: 'collection'
+          type: 'collection' as const
         })) : [];
       }
 
       // Only fetch prompts if contentType is 'All' or 'Prompts'
-      let prompts: Prompt[] = [];
+      let prompts: (Prompt & { type: 'prompt' })[] = [];
       if (filters.contentType === 'All' || filters.contentType === 'Prompts') {
         // Start building the query for prompts
         let promptQuery = supabase
@@ -182,14 +182,14 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
             created_at: item.created_at || new Date().toISOString(),
             is_public: item.is_public || false,
             is_shared: false, // Default value since it's not in the database
-            profiles: item.profiles as { username: string } | undefined,
-            type: 'prompt' // Add type property to differentiate from collections
-          } as Prompt & { type: 'prompt' };
+            profiles: item.profiles as { username: string } | null,
+            type: 'prompt' as const // Add type property to differentiate from collections
+          };
         });
       }
 
       // Combine and return both prompts and collections
-      return [...prompts, ...collections];
+      return [...prompts, ...collections] as (Prompt & { type: 'prompt' } | Collection)[];
     } catch (error) {
       console.error('Error fetching prompts and collections:', error);
       throw error;
@@ -206,8 +206,8 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
 
   return {
     results,
-    prompts: results?.filter(item => 'type' in item && item.type === 'prompt') as Prompt[],
-    collections: results?.filter(item => 'type' in item && item.type === 'collection') as Collection[],
+    prompts: results?.filter(item => item.type === 'prompt') as (Prompt & { type: 'prompt' })[],
+    collections: results?.filter(item => item.type === 'collection') as Collection[],
     isLoading,
     isError,
     refetch,
