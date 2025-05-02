@@ -33,6 +33,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://api.dicebear.com">
+    <link rel="preconnect" href="https://wbfezuyehuvmdayylsrm.supabase.co">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/src/main.tsx" as="script" type="module">
+    <link rel="preload" href="/lovable-uploads/bd924504-e9e9-402c-a6f7-2ee8e99f01f2.png" as="image">
     
     <!-- Font display optimization -->
     <style>
@@ -54,11 +59,12 @@
         align-items: center;
         justify-content: center;
         min-height: 100vh;
+        background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
       }
       
       .loading-spinner {
-        width: 2rem;
-        height: 2rem;
+        width: 2.5rem;
+        height: 2.5rem;
         border: 0.25rem solid #e5e7eb;
         border-top: 0.25rem solid #7e22ce;
         border-radius: 50%;
@@ -69,7 +75,16 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
       }
+      
+      /* Add content-visibility for offscreen content */
+      .content-lazy {
+        content-visibility: auto;
+        contain-intrinsic-size: 0 500px;
+      }
     </style>
+    
+    <!-- DNS prefetching -->
+    <link rel="dns-prefetch" href="https://wbfezuyehuvmdayylsrm.supabase.co">
     
     <!-- Structured Data for better SEO -->
     <script type="application/ld+json">
@@ -88,9 +103,6 @@
         }
       }
     </script>
-    
-    <!-- Preload key resources -->
-    <link rel="preload" href="/lovable-uploads/bd924504-e9e9-402c-a6f7-2ee8e99f01f2.png" as="image">
   </head>
 
   <body>
@@ -98,6 +110,9 @@
       <!-- Fallback content while React loads -->
       <div class="loading-fallback">
         <div class="loading-spinner"></div>
+        <noscript>
+          <p>Please enable JavaScript to use PromptNexis.</p>
+        </noscript>
       </div>
     </div>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
