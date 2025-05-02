@@ -20,10 +20,18 @@ interface PromptsTabProps {
   isLoading: boolean;
   prompts: UserPrompt[];
   username: string;
+  refetch?: () => void;
 }
 
-const PromptsTab = ({ isLoading, prompts, username }: PromptsTabProps) => {
+const PromptsTab = ({ isLoading, prompts, username, refetch }: PromptsTabProps) => {
   const navigate = useNavigate();
+  
+  // Effect to automatically fetch latest prompts when this component mounts
+  React.useEffect(() => {
+    if (refetch) {
+      refetch();
+    }
+  }, [refetch]);
   
   if (isLoading) {
     return (

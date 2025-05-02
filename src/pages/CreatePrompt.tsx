@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -8,6 +7,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Prompt } from '@/types/prompt';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Form,
   FormControl,
@@ -86,6 +86,7 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
   const [promptData, setPromptData] = useState<Prompt | null>(null);
   const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState("gpt-4");
+  const queryClient = useQueryClient();
   
   // Initialize form with default values
   const form = useForm<z.infer<typeof formSchema>>({
@@ -236,6 +237,9 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
         // Handle collections for edited prompt
         await updatePromptCollections(promptData.id, selectedCollections);
         
+        // Invalidate and refetch the prompts query
+        queryClient.invalidateQueries({ queryKey: ['prompts', user.id] });
+        
         toast.success('Prompt updated successfully!');
       } else {
         // Create new prompt
@@ -258,6 +262,9 @@ const CreatePrompt: React.FC<CreatePromptProps> = ({ isEditing = false }) => {
         if (data && data.length > 0) {
           // Add prompt to selected collections
           await updatePromptCollections(data[0].id, selectedCollections);
+          
+          // Invalidate and refetch the prompts query
+          queryClient.invalidateQueries({ queryKey: ['prompts', user.id] });
           
           toast.success('Prompt created successfully!');
         }
