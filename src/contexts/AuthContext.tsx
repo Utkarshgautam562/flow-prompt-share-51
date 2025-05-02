@@ -72,25 +72,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string, options?: { username?: string }) => {
-    // Fix the type instantiation issue by using a simpler query approach
-    const { count, error: emailCheckError } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('email', email);
-    
-    if (emailCheckError) {
-      console.error('Error checking email:', emailCheckError);
-      // Continue with signup as this could be due to permissions
-    } else if (count && count > 0) {
-      throw new Error('Email is already in use. Please sign in instead.');
-    }
+    // Simply rely on Supabase Auth's built-in handling of duplicate emails
+    // This avoids any complex TypeScript type instantiation
     
     // Keep the username short to avoid database error
     let userData = {};
     
     if (options?.username) {
       // Ensure username is not too long (Supabase profiles column limitation)
-      // The error log indicates a 24 character limit for the username field
       const safeUsername = options.username.substring(0, 20); // Using 20 to be safe
       userData = {
         username: safeUsername
@@ -106,6 +95,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (error) {
+      if (error.message.includes("User already registered")) {
+        throw new Error('Email is already in use. Please sign in instead.');
+      }
       throw error;
     }
   };
