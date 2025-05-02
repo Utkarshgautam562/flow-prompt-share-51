@@ -111,7 +111,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password,
         options: {
-          data: options?.username ? { username: options.username } : undefined
+          data: options?.username ? { username: options.username } : undefined,
+          emailRedirectTo: `${window.location.origin}/auth`
         }
       });
       
@@ -149,7 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/auth?reset=true',
+        redirectTo: `${window.location.origin}/auth?reset=true`,
       });
       
       if (error) {

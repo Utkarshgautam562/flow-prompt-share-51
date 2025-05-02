@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthLayout from '@/components/auth/AuthLayout';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Auth = () => {
   const { user } = useAuth();
@@ -20,6 +22,22 @@ const Auth = () => {
     
     if (isReset) {
       setActiveTab("signin"); // Ensure we're on the signin tab for password reset
+      
+      // Handle password recovery flow
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          toast.info('Please enter a new password to reset your account');
+        }
+      });
+    }
+    
+    // Check if there's a recovery token in the URL (usually after clicking reset link)
+    const url = new URL(window.location.href);
+    const hasType = url.hash.includes('type=recovery');
+    
+    if (hasType) {
+      setActiveTab("signin");
+      toast.info('Please enter your new password');
     }
   }, [location]);
   

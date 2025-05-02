@@ -163,6 +163,9 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, setActiveTab }) => {
           'Create Account'
         )}
       </Button>
+      <p className="text-xs text-center text-gray-500 mt-4">
+        You'll receive a confirmation email to verify your account.
+      </p>
     </form>
   );
 };

@@ -18,23 +18,27 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSuccess, redirectTo }) => {
   const { signIn, resetPassword } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const location = useLocation();
   
   // Form states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
-  // Check for password reset in URL params
+  // Check for password reset in URL params and auth state
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const isReset = params.get('reset') === 'true';
     
     if (isReset) {
-      // Handle password recovery flow
+      // Set up listener for auth state changes related to password recovery
       supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === 'PASSWORD_RECOVERY') {
-          // We'll handle this with a modal or redirect to a dedicated reset page
+          setIsPasswordRecovery(true);
           toast.info('Please enter a new password to reset your account');
+          
           // Reset the URL parameter to avoid showing the message again on refresh
           const url = new URL(window.location.href);
           url.searchParams.delete('reset');
@@ -63,6 +67,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSuccess, redirectTo }) => {
       if (isResetMode) {
         // Handle password reset request
         await resetPassword(email);
+        toast.success('If your email is registered, you will receive password reset instructions');
         setIsResetMode(false);
       } else {
         // Handle normal sign in
@@ -91,6 +96,88 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSuccess, redirectTo }) => {
       setIsLoading(false);
     }
   };
+  
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newPassword) {
+      toast.error('Please enter a new password');
+      return;
+    }
+    
+    if (newPassword !== confirmNewPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success('Password updated successfully');
+      setIsPasswordRecovery(false);
+      
+      // Clear the form fields
+      setNewPassword('');
+      setConfirmNewPassword('');
+      
+    } catch (error: any) {
+      console.error('Password update error:', error);
+      toast.error(error.message || 'Failed to update password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  if (isPasswordRecovery) {
+    return (
+      <form onSubmit={handlePasswordReset} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="new-password">New Password</Label>
+          <Input 
+            id="new-password" 
+            type="password" 
+            placeholder="••••••••"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            disabled={isLoading}
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="confirm-new-password">Confirm New Password</Label>
+          <Input 
+            id="confirm-new-password" 
+            type="password" 
+            placeholder="••••••••"
+            value={confirmNewPassword}
+            onChange={(e) => setConfirmNewPassword(e.target.value)}
+            disabled={isLoading}
+          />
+        </div>
+        
+        <Button 
+          type="submit" 
+          className="w-full bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 size={16} className="mr-2 animate-spin" />
+              Updating password...
+            </>
+          ) : (
+            'Reset Password'
+          )}
+        </Button>
+      </form>
+    );
+  }
   
   return (
     <form onSubmit={handleSignIn} className="space-y-4">
