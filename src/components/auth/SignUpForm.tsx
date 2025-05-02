@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SignUpFormProps {
   onSuccess?: () => void;
@@ -24,8 +25,8 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, setActiveTab }) => {
   const [usernameError, setUsernameError] = useState('');
   
   const validateUsername = (value: string) => {
-    if (value.length > 20) {
-      setUsernameError('Username must be less than 20 characters');
+    if (value.length > 50) {
+      setUsernameError('Username must be less than 50 characters');
       return false;
     }
     if (/[^a-zA-Z0-9_]/.test(value)) {
@@ -34,6 +35,27 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, setActiveTab }) => {
     }
     setUsernameError('');
     return true;
+  };
+
+  // Check if email already exists
+  const checkEmailExists = async (email: string) => {
+    try {
+      // Use password reset as a way to check if an email exists
+      // This is a workaround since Supabase doesn't provide a direct way to check
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/auth'
+      });
+      
+      // If there's no error or the error doesn't mention the user doesn't exist,
+      // then the user likely exists
+      if (!error || !error.message.includes("For security purposes, you can't know if an account exists")) {
+        return true; // Email exists
+      }
+      return false; // Email doesn't exist
+    } catch (error) {
+      console.error("Error checking email:", error);
+      return false; // Assume email doesn't exist on error
+    }
   };
   
   const handleSignUp = async (e: React.FormEvent) => {
@@ -52,11 +74,27 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, setActiveTab }) => {
     if (username && !validateUsername(username)) {
       return; // Error is already set by validateUsername
     }
-    
+
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
-      await signUp(email, password, { username: username || undefined });
+      // Check if email already exists
+      const emailExists = await checkEmailExists(email);
+      if (emailExists) {
+        toast.error('Email is already registered. Please sign in instead.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Create the user account
+      await signUp(email, password);
       toast.success('Account created successfully! Check your email for confirmation');
+      
+      // Update username separately after account creation
+      if (username) {
+        // We handle this in the AuthContext.tsx now, so no need to do anything here
+      }
+      
       if (setActiveTab) {
         setActiveTab("signin");
       }
@@ -85,13 +123,13 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, setActiveTab }) => {
             validateUsername(e.target.value);
           }}
           disabled={isLoading}
-          maxLength={20}
+          maxLength={50}
         />
         {usernameError && (
           <p className="text-xs text-red-500">{usernameError}</p>
         )}
         <p className="text-xs text-gray-500">
-          Username must be less than 20 characters and can only contain letters, numbers, and underscores.
+          Username must be less than 50 characters and can only contain letters, numbers, and underscores.
         </p>
       </div>
       <div className="space-y-2">
