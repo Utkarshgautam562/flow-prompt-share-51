@@ -72,12 +72,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string, options?: { username?: string }) => {
+    // Check if email already exists
+    const { data: existingUsers, error: emailCheckError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', email);
+    
+    if (emailCheckError) {
+      console.error('Error checking email:', emailCheckError);
+      // Continue with signup as this could be due to permissions
+    } else if (existingUsers && existingUsers.length > 0) {
+      throw new Error('Email is already in use. Please sign in instead.');
+    }
+    
     // Keep the username short to avoid database error
     let userData = {};
     
     if (options?.username) {
       // Ensure username is not too long (Supabase profiles column limitation)
-      const safeUsername = options.username.substring(0, 20);
+      // The error log indicates a 24 character limit for the username field
+      const safeUsername = options.username.substring(0, 20); // Using 20 to be safe
       userData = {
         username: safeUsername
       };
