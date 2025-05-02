@@ -11,9 +11,10 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Copy, Eye } from 'lucide-react';
+import { Heart, Copy, Eye, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLikes } from '@/hooks/useLikes';
+import { format } from 'date-fns';
 
 interface PromptCardProps {
   id: string;
@@ -24,6 +25,7 @@ interface PromptCardProps {
   upvotes: number;
   author: string;
   showViewButton?: boolean;
+  createdAt?: string;
 }
 
 const PromptCard: React.FC<PromptCardProps> = ({ 
@@ -34,7 +36,8 @@ const PromptCard: React.FC<PromptCardProps> = ({
   useCase, 
   upvotes, 
   author,
-  showViewButton = false
+  showViewButton = false,
+  createdAt
 }) => {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
@@ -76,6 +79,15 @@ const PromptCard: React.FC<PromptCardProps> = ({
     return text.substring(0, maxLength) + '...';
   };
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch (e) {
+      return '';
+    }
+  };
+
   return (
     <Card 
       className={`overflow-hidden transition-all duration-200 ${isHovered ? 'shadow-lg' : 'shadow-sm'} hover:shadow-lg hover:-translate-y-1 cursor-pointer`}
@@ -94,6 +106,12 @@ const PromptCard: React.FC<PromptCardProps> = ({
               <Badge variant="outline" className="bg-purple-50 text-purple-700 hover:bg-purple-100">
                 {useCase}
               </Badge>
+              {createdAt && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100 flex items-center gap-1">
+                  <Calendar size={12} />
+                  <span>{formatDate(createdAt)}</span>
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -166,4 +184,4 @@ const PromptCard: React.FC<PromptCardProps> = ({
   );
 };
 
-export default PromptCard;
+export default React.memo(PromptCard);

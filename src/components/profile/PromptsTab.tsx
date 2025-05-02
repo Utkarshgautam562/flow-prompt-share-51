@@ -82,6 +82,7 @@ const PromptsTab = ({ isLoading, prompts, username, refetch }: PromptsTabProps) 
           upvotes={0}
           author={username || "You"}
           showViewButton={true}
+          createdAt={prompt.created_at}
         />
       ))}
     </div>

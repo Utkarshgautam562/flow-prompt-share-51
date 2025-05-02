@@ -11,7 +11,10 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
-    react(),
+    react({
+      // Add fast refresh options
+      fastRefresh: true,
+    }),
     mode === 'development' &&
     componentTagger(),
   ].filter(Boolean),
@@ -29,6 +32,7 @@ export default defineConfig(({ mode }) => ({
       compress: {
         drop_console: mode === 'production', // Only drop console in production
         drop_debugger: mode === 'production', // Only drop debugger in production
+        passes: 2, // Additional optimization passes
       },
     },
     rollupOptions: {
@@ -44,7 +48,11 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-slot',
             '@radix-ui/react-tabs',
           ],
-          tanstack: ['@tanstack/react-query']
+          tanstack: ['@tanstack/react-query'],
+          // Separate chunk for date utilities
+          dateUtils: ['date-fns'],
+          // Separate chunk for icons
+          icons: ['lucide-react'],
         },
       },
     },
@@ -59,6 +67,20 @@ export default defineConfig(({ mode }) => ({
       'react-router-dom',
       '@tanstack/react-query',
       'sonner',
+      'date-fns',
+      'lucide-react',
     ],
+    esbuildOptions: {
+      target: 'es2015',
+    }
+  },
+  // Add CSS optimization
+  css: {
+    devSourcemap: true,
+    preprocessorOptions: {
+      less: {
+        math: 'always',
+      },
+    },
   },
 }));
