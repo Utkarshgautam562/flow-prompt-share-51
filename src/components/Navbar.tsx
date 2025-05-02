@@ -64,7 +64,7 @@ const Navbar = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center logo-container h-16">
               <img
-                src="/lovable-uploads/bd924504-e9e9-402c-a6f7-2ee8e99f01f2.png"
+                src="/uploads/logo.png"
                 alt="PromptNexis"
                 width="160"
                 height="40"
@@ -191,14 +191,14 @@ const Navbar = () => {
             {/* Mobile Logo */}
             <div className="px-3 py-2 logo-container h-10 flex items-center">
               <img
-                src="/lovable-uploads/bd924504-e9e9-402c-a6f7-2ee8e99f01f2.png"
+                src="/uploads/logo.png"
                 alt="PromptNexis Logo"
                 width="120"
                 height="32"
                 className="h-auto max-h-full"
                 loading="lazy"
               />
-            </Link>
+            </div>
             <Link to="/" className="block px-3 py-2 text-base font-medium hover:bg-slate-50 rounded-md">
               Home
             </Link>

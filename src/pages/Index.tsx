@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -43,11 +44,11 @@ const featuredPrompts = [{
   upvotes: 72,
   author: 'tech_writer'
 }];
+
 const Index = () => {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  
   const handleSearch = (query: string, searchFilters: SearchFilters) => {
     // Navigate to the explore page with search parameters
     const searchParams = new URLSearchParams();
@@ -65,7 +66,9 @@ const Index = () => {
     }
     navigate(`/explore?${searchParams.toString()}`);
   };
-  return <div className="min-h-screen flex flex-col">
+  
+  return (
+    <div className="min-h-screen flex flex-col">
       <Helmet>
         <title>PromptNexis - Share and Discover AI Prompts for ChatGPT, Claude, and More</title>
         <meta name="description" content="Create, share, organize, and discover high-quality AI prompts with PromptNexis. The ultimate platform for managing your AI prompts with team collaboration." />
@@ -95,7 +98,8 @@ const Index = () => {
             </div>
             
             <div className="flex gap-4">
-              {user ? <>
+              {user ? (
+                <>
                   <Link to="/my-prompts">
                     <Button className="bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90">
                       My Prompts
@@ -106,11 +110,14 @@ const Index = () => {
                       Create Prompt
                     </Button>
                   </Link>
-                </> : <Link to="/auth">
+                </>
+              ) : (
+                <Link to="/auth">
                   <Button className="bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90">
                     Get Started Free
                   </Button>
-                </Link>}
+                </Link>
+              )}
               <Link to="/explore">
                 <Button variant="outline">
                   Explore Prompts
@@ -133,7 +140,18 @@ const Index = () => {
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredPrompts.map(prompt => <PromptCard key={prompt.id} id={prompt.id} title={prompt.title} description={prompt.description} llm={prompt.llm} useCase={prompt.useCase} upvotes={prompt.upvotes} author={prompt.author} />)}
+              {featuredPrompts.map(prompt => (
+                <PromptCard 
+                  key={prompt.id} 
+                  id={prompt.id} 
+                  title={prompt.title} 
+                  description={prompt.description} 
+                  llm={prompt.llm} 
+                  useCase={prompt.useCase} 
+                  upvotes={prompt.upvotes} 
+                  author={prompt.author} 
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -274,9 +292,16 @@ const Index = () => {
                 <Link to="/cookie-policy" className="hover:underline">Cookie Policy</Link>
               </div>
             </nav>
+            
+            {/* Contact Email */}
+            <div className="text-center text-sm text-gray-500">
+              <p>Contact us: <a href="mailto:promptnexis@gmail.com" className="text-blue-600 hover:underline">promptnexis@gmail.com</a></p>
+            </div>
           </div>
         </div>
       </footer>
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
