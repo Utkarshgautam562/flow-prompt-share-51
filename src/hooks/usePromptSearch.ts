@@ -86,7 +86,8 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
         collections = collectionsData ? collectionsData.map(item => {
           // Handle the profiles data correctly
           let profileData = null;
-          if (item.profiles && typeof item.profiles === 'object' && !('error' in item.profiles)) {
+          // Ensure item.profiles exists before checking properties on it
+          if (item.profiles && typeof item.profiles === 'object' && item.profiles !== null && !('error' in item.profiles)) {
             profileData = item.profiles;
           }
           
@@ -183,7 +184,8 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
 
           // Handle the profiles data correctly
           let profileData = null;
-          if (item.profiles && typeof item.profiles === 'object' && !('error' in item.profiles)) {
+          // Ensure item.profiles exists before checking properties on it
+          if (item.profiles && typeof item.profiles === 'object' && item.profiles !== null && !('error' in item.profiles)) {
             profileData = item.profiles;
           }
 
