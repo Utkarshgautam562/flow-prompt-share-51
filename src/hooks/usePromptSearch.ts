@@ -82,11 +82,20 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
 
         if (collectionsError) throw collectionsError;
 
-        // Process collections data
-        collections = collectionsData ? collectionsData.map(item => ({
-          ...item,
-          type: 'collection' as const
-        })) : [];
+        // Process collections data with proper type assertion
+        collections = collectionsData ? collectionsData.map(item => {
+          // Handle the profiles data correctly
+          let profileData = null;
+          if (item.profiles && typeof item.profiles === 'object' && !('error' in item.profiles)) {
+            profileData = item.profiles;
+          }
+          
+          return {
+            ...item,
+            profiles: profileData,
+            type: 'collection' as const
+          };
+        }) : [];
       }
 
       // Only fetch prompts if contentType is 'All' or 'Prompts'
@@ -172,6 +181,12 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
             }
           }
 
+          // Handle the profiles data correctly
+          let profileData = null;
+          if (item.profiles && typeof item.profiles === 'object' && !('error' in item.profiles)) {
+            profileData = item.profiles;
+          }
+
           return {
             id: item.id,
             title: item.title,
@@ -182,8 +197,8 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
             created_at: item.created_at || new Date().toISOString(),
             is_public: item.is_public || false,
             is_shared: false, // Default value since it's not in the database
-            profiles: item.profiles as { username: string } | null,
-            type: 'prompt' as const // Add type property to differentiate from collections
+            profiles: profileData,
+            type: 'prompt' as const
           };
         });
       }
