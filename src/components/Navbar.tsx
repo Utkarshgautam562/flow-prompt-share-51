@@ -57,23 +57,23 @@ const Navbar = () => {
   
   return (
     <header className="border-b bg-white">
-      <div className="container mx-auto px-4 md:px-6">
+      <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-20">
         <div className="flex h-16 items-center justify-between">
           {/* Logo and Brand */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center logo-container h-12">
+            <Link to="/" className="flex items-center logo-container h-16">
               <img
                 src="/lovable-uploads/bd924504-e9e9-402c-a6f7-2ee8e99f01f2.png"
-                alt="PromptNexis Logo"
-                width="150"
+                alt="PromptNexis"
+                width="160"
                 height="40"
-                className="h-auto max-h-full"
+                className="h-auto max-h-full w-32 md:w-40"
                 loading="lazy"
               />
             </Link>
             
             {/* Desktop Navigation */}
-            <nav className="hidden md:ml-8 md:flex md:space-x-2">
+            <nav className="hidden md:ml-6 lg:ml-8 md:flex md:space-x-2 lg:space-x-4">
               <NavItem href="/">Home</NavItem>
               <NavItem href="/explore">Explore</NavItem>
               {user && <NavItem href="/my-prompts">My Prompts</NavItem>}
