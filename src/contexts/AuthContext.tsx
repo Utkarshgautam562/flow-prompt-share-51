@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -72,32 +73,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string, options?: { username?: string }) => {
-    // Simply rely on Supabase Auth's built-in handling of duplicate emails
-    // This avoids any complex TypeScript type instantiation
-    
-    // Keep the username short to avoid database error
-    let userData = {};
-    
-    if (options?.username) {
-      // Ensure username is not too long (Supabase profiles column limitation)
-      const safeUsername = options.username.substring(0, 20); // Using 20 to be safe
-      userData = {
-        username: safeUsername
-      };
-    }
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: userData
-      }
-    });
-
-    if (error) {
-      if (error.message.includes("User already registered")) {
+    try {
+      // First check if the email already exists by attempting a password reset
+      // This is a workaround since Supabase doesn't provide a direct way to check for existing emails
+      const { error: emailCheckError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/auth'
+      });
+      
+      // If the email doesn't exist, the reset password would fail with a specific error
+      // indicating the user doesn't exist
+      if (!emailCheckError || !emailCheckError.message.includes("For security purposes, you can't know if an account exists")) {
         throw new Error('Email is already in use. Please sign in instead.');
       }
+      
+      // If we get here, the email doesn't exist and we can proceed with signup
+      // Don't set any user metadata during signup to avoid the character limit issue
+      const { error } = await supabase.auth.signUp({
+        email,
+        password
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // If signup is successful and we have a username, we update the profile separately
+      if (options?.username) {
+        const { data: { user: newUser } } = await supabase.auth.getUser();
+        
+        if (newUser) {
+          // Update the profile with username
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ username: options.username })
+            .eq('id', newUser.id);
+            
+          if (profileError) {
+            console.error('Error updating profile:', profileError);
+            // We don't throw here because the signup was successful
+          }
+        }
+      }
+    } catch (error) {
       throw error;
     }
   };
