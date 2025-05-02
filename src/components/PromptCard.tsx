@@ -11,7 +11,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Copy, Eye, Calendar } from 'lucide-react';
+import { Heart, Copy, Eye, Calendar, Globe, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLikes } from '@/hooks/useLikes';
 import { format } from 'date-fns';
@@ -26,6 +26,7 @@ interface PromptCardProps {
   author: string;
   showViewButton?: boolean;
   createdAt?: string;
+  isPublic?: boolean;
 }
 
 const PromptCard: React.FC<PromptCardProps> = ({ 
@@ -37,7 +38,8 @@ const PromptCard: React.FC<PromptCardProps> = ({
   upvotes, 
   author,
   showViewButton = false,
-  createdAt
+  createdAt,
+  isPublic = false
 }) => {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
@@ -98,7 +100,16 @@ const PromptCard: React.FC<PromptCardProps> = ({
       <CardHeader className="p-4 pb-0">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-lg font-bold mb-1">{title}</CardTitle>
+            <div className="flex items-center gap-2 mb-1">
+              <CardTitle className="text-lg font-bold">{title}</CardTitle>
+              <Badge 
+                variant={isPublic ? "default" : "secondary"} 
+                className={`flex items-center gap-1 ${isPublic ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                {isPublic ? <Globe size={12} /> : <Lock size={12} />}
+                <span className="text-xs">{isPublic ? 'Public' : 'Private'}</span>
+              </Badge>
+            </div>
             <div className="flex flex-wrap gap-1 mb-2">
               <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100">
                 {llm}

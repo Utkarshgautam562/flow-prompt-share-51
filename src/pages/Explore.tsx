@@ -8,10 +8,12 @@ import SearchBar, { SearchFilters } from '@/components/SearchBar';
 import PromptGrid from '@/components/explore/PromptGrid';
 import ExploreHeader from '@/components/explore/ExploreHeader';
 import { usePromptSearch } from '@/hooks/usePromptSearch';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Explore = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   
   // Parse search parameters from URL
   const queryParams = new URLSearchParams(location.search);
@@ -19,11 +21,13 @@ const Explore = () => {
   const initialModel = queryParams.get('model') || 'All Models';
   const initialUseCase = queryParams.get('useCase') || 'All Use Cases';
   const initialSortBy = queryParams.get('sort') || 'relevance';
+  const initialVisibility = queryParams.get('visibility') || 'All';
   
   const initialFilters: SearchFilters = {
     llmModel: initialModel,
     useCase: initialUseCase,
-    sortBy: initialSortBy
+    sortBy: initialSortBy,
+    visibility: initialVisibility
   };
 
   const { 
@@ -52,6 +56,10 @@ const Explore = () => {
     if (filters.useCase && filters.useCase !== 'All Use Cases') {
       parts.push(filters.useCase);
     }
+
+    if (filters.visibility && filters.visibility !== 'All') {
+      parts.push(filters.visibility === 'Public' ? 'Public Prompts' : 'Private Prompts');
+    }
     
     if (parts.length > 0) {
       return `${parts.join(' | ')} Prompts - PromptNexis`;
@@ -62,7 +70,7 @@ const Explore = () => {
 
   // Generate meta description based on filters
   const generateMetaDescription = () => {
-    if (searchQuery || filters.llmModel !== 'All Models' || filters.useCase !== 'All Use Cases') {
+    if (searchQuery || filters.llmModel !== 'All Models' || filters.useCase !== 'All Use Cases' || filters.visibility !== 'All') {
       const parts = [];
       
       if (searchQuery) {
@@ -76,11 +84,15 @@ const Explore = () => {
       if (filters.useCase !== 'All Use Cases') {
         parts.push(`for ${filters.useCase}`);
       }
+
+      if (filters.visibility !== 'All') {
+        parts.push(filters.visibility === 'Public' ? 'publicly available' : 'private to you');
+      }
       
       return `Discover high-quality AI prompts ${parts.join(' ')}. Browse, filter, and use prompts from the PromptNexis community.`;
     }
     
-    return 'Explore thousands of AI prompts for ChatGPT, Claude, Gemini and more. Filter by model, use case, or popularity to find the perfect prompt for your needs.';
+    return 'Explore thousands of AI prompts for ChatGPT, Claude, Gemini and more. Filter by model, use case, visibility, or popularity to find the perfect prompt for your needs.';
   };
 
   // Handle search
@@ -94,6 +106,7 @@ const Explore = () => {
     if (searchFilters.llmModel !== 'All Models') params.set('model', searchFilters.llmModel);
     if (searchFilters.useCase !== 'All Use Cases') params.set('useCase', searchFilters.useCase);
     if (searchFilters.sortBy !== 'relevance') params.set('sort', searchFilters.sortBy);
+    if (searchFilters.visibility !== 'All') params.set('visibility', searchFilters.visibility);
     
     navigate(`/explore?${params.toString()}`, { replace: true });
   };
@@ -106,6 +119,16 @@ const Explore = () => {
   if (isError) {
     toast.error('Failed to load prompts. Please try again.');
   }
+
+  const renderPrompts = () => {
+    if (!prompts) return [];
+    
+    // Add isPublic property to each prompt
+    return prompts.map(prompt => ({
+      ...prompt,
+      isPublic: prompt.is_public
+    }));
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -134,9 +157,10 @@ const Explore = () => {
             placeholder="Search for prompts..."
             initialQuery={searchQuery}
             initialFilters={filters}
+            showVisibilityFilter={!!user} // Only show visibility filter for logged in users
           />
           
-          <PromptGrid prompts={prompts} isLoading={isLoading} />
+          <PromptGrid prompts={renderPrompts()} isLoading={isLoading} />
         </div>
       </div>
     </div>

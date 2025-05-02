@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, Filter, X, Globe, Lock, Eye } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,18 +19,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface SearchBarProps {
   onSearch?: (query: string, filters: SearchFilters) => void;
   placeholder?: string;
   initialQuery?: string;
   initialFilters?: SearchFilters;
+  showVisibilityFilter?: boolean;
 }
 
 export interface SearchFilters {
   llmModel?: string;
   useCase?: string;
   sortBy?: string;
+  visibility?: string;
 }
 
 // Enhanced list of models
@@ -69,19 +72,29 @@ const USE_CASES = [
   "Human Resources"
 ];
 
+// Visibility options
+const VISIBILITY_OPTIONS = [
+  "All", 
+  "Public", 
+  "Private"
+];
+
 const SearchBar: React.FC<SearchBarProps> = ({ 
   onSearch = () => {}, 
   placeholder = "Search prompts by keyword, use case, or LLM...",
   initialQuery = '',
-  initialFilters
+  initialFilters,
+  showVisibilityFilter = false
 }) => {
   const [query, setQuery] = useState(initialQuery);
   const [filters, setFilters] = useState<SearchFilters>(initialFilters || {
     llmModel: "All Models",
     useCase: "All Use Cases",
-    sortBy: "relevance"
+    sortBy: "relevance",
+    visibility: "All"
   });
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   
   useEffect(() => {
     // Initialize query from props
@@ -106,6 +119,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
       newActiveFilters.push(filters.useCase);
     }
     
+    if (filters.visibility && filters.visibility !== "All") {
+      newActiveFilters.push(filters.visibility);
+    }
+    
     setActiveFilters(newActiveFilters);
   }, [filters]);
   
@@ -119,13 +136,22 @@ const SearchBar: React.FC<SearchBarProps> = ({
       setFilters(prev => ({ ...prev, llmModel: "All Models" }));
     } else if (USE_CASES.includes(filter)) {
       setFilters(prev => ({ ...prev, useCase: "All Use Cases" }));
+    } else if (VISIBILITY_OPTIONS.includes(filter)) {
+      setFilters(prev => ({ ...prev, visibility: "All" }));
     }
     
     onSearch(query, {
       ...filters,
       llmModel: LLM_MODELS.includes(filter) ? "All Models" : filters.llmModel,
       useCase: USE_CASES.includes(filter) ? "All Use Cases" : filters.useCase,
+      visibility: VISIBILITY_OPTIONS.includes(filter) ? "All" : filters.visibility,
     });
+  };
+
+  const renderVisibilityIcon = (visibility: string) => {
+    if (visibility === "Public") return <Globe size={14} className="mr-2" />;
+    if (visibility === "Private") return <Lock size={14} className="mr-2" />;
+    return <Eye size={14} className="mr-2" />;
   };
   
   return (
@@ -140,56 +166,96 @@ const SearchBar: React.FC<SearchBarProps> = ({
           aria-label="Search input"
         />
         <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <Collapsible open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+            <CollapsibleTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 gap-1" aria-label="Filter options">
                 <Filter size={14} aria-hidden="true" />
                 Filter
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>LLM Model</DropdownMenuLabel>
-              {LLM_MODELS.map((model) => (
-                <DropdownMenuItem 
-                  key={model}
-                  onClick={() => setFilters({ ...filters, llmModel: model })}
-                  className={filters.llmModel === model ? "bg-muted" : ""}
-                >
-                  {model}
-                </DropdownMenuItem>
-              ))}
-              
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuLabel>Use Case</DropdownMenuLabel>
-              {USE_CASES.map((useCase) => (
-                <DropdownMenuItem 
-                  key={useCase}
-                  onClick={() => setFilters({ ...filters, useCase })}
-                  className={filters.useCase === useCase ? "bg-muted" : ""}
-                >
-                  {useCase}
-                </DropdownMenuItem>
-              ))}
-              
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuLabel>Sort By</DropdownMenuLabel>
-              <Select 
-                value={filters.sortBy} 
-                onValueChange={(value) => setFilters({ ...filters, sortBy: value })}
-              >
-                <SelectTrigger className="w-full border-0 p-2">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="relevance">Relevance</SelectItem>
-                  <SelectItem value="recent">Most Recent</SelectItem>
-                  <SelectItem value="popular">Most Popular</SelectItem>
-                </SelectContent>
-              </Select>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="absolute right-0 top-10 z-50 mt-2 min-w-[240px] rounded-md border bg-white p-4 shadow-md">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="mb-2 text-sm font-medium">LLM Model</h4>
+                  <Select 
+                    value={filters.llmModel} 
+                    onValueChange={(value) => setFilters({ ...filters, llmModel: value })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LLM_MODELS.map((model) => (
+                        <SelectItem key={model} value={model}>
+                          {model}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <h4 className="mb-2 text-sm font-medium">Use Case</h4>
+                  <Select 
+                    value={filters.useCase} 
+                    onValueChange={(value) => setFilters({ ...filters, useCase: value })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select use case" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {USE_CASES.map((useCase) => (
+                        <SelectItem key={useCase} value={useCase}>
+                          {useCase}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {showVisibilityFilter && (
+                  <div>
+                    <h4 className="mb-2 text-sm font-medium">Visibility</h4>
+                    <Select 
+                      value={filters.visibility} 
+                      onValueChange={(value) => setFilters({ ...filters, visibility: value })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select visibility" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VISIBILITY_OPTIONS.map((visibility) => (
+                          <SelectItem key={visibility} value={visibility}>
+                            <div className="flex items-center">
+                              {renderVisibilityIcon(visibility)}
+                              {visibility}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                <div>
+                  <h4 className="mb-2 text-sm font-medium">Sort By</h4>
+                  <Select 
+                    value={filters.sortBy} 
+                    onValueChange={(value) => setFilters({ ...filters, sortBy: value })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="relevance">Relevance</SelectItem>
+                      <SelectItem value="recent">Most Recent</SelectItem>
+                      <SelectItem value="popular">Most Popular</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
           
           <Button 
             type="submit" 

@@ -5,14 +5,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { Prompt } from '@/types/prompt';
 import { SearchFilters } from '@/components/SearchBar';
 import { Json } from '@/integrations/supabase/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const usePromptSearch = (initialQuery: string = '', initialFilters: SearchFilters = {
   llmModel: 'All Models',
   useCase: 'All Use Cases',
-  sortBy: 'relevance'
+  sortBy: 'relevance',
+  visibility: 'All'
 }) => {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [filters, setFilters] = useState<SearchFilters>(initialFilters);
+  const { user } = useAuth();
 
   // Function to fetch prompts from Supabase
   const fetchPrompts = async ({ query, filters }: { query: string, filters: SearchFilters }) => {
@@ -20,8 +23,23 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
       // Start building the query
       let promptQuery = supabase
         .from('prompts')
-        .select('*, profiles:user_id(username)')
-        .eq('is_public', true);
+        .select('*, profiles:user_id(username)');
+
+      // Apply visibility filter
+      if (filters.visibility === 'Public') {
+        promptQuery = promptQuery.eq('is_public', true);
+      } else if (filters.visibility === 'Private') {
+        // For private prompts, ensure user is authenticated and only show their private prompts
+        if (!user) return []; // Return empty array if user is not authenticated
+        promptQuery = promptQuery.eq('is_public', false).eq('user_id', user.id);
+      } else {
+        // For 'All', show public prompts and user's private prompts if authenticated
+        if (user) {
+          promptQuery = promptQuery.or(`is_public.eq.true,user_id.eq.${user.id}`);
+        } else {
+          promptQuery = promptQuery.eq('is_public', true);
+        }
+      }
 
       // Apply search query if provided - optimize query by using exact match when possible
       if (query) {
@@ -111,7 +129,7 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
 
   // Use React Query to handle the data fetching with improved caching strategy
   const { data: prompts, isLoading, isError, refetch } = useQuery({
-    queryKey: ['prompts', searchQuery, filters],
+    queryKey: ['prompts', searchQuery, filters, user?.id],
     queryFn: () => fetchPrompts({ query: searchQuery, filters }),
     staleTime: 300000, // Increase to 5 minutes for better caching
     gcTime: 600000, // This replaces cacheTime in newer React Query versions

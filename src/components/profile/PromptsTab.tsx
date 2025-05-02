@@ -14,6 +14,7 @@ interface UserPrompt {
     model: string;
   };
   created_at: string;
+  is_public?: boolean;
 }
 
 interface PromptsTabProps {
@@ -83,6 +84,7 @@ const PromptsTab = ({ isLoading, prompts, username, refetch }: PromptsTabProps) 
           author={username || "You"}
           showViewButton={true}
           createdAt={prompt.created_at}
+          isPublic={prompt.is_public}
         />
       ))}
     </div>
