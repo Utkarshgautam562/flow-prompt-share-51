@@ -40,7 +40,7 @@ const NavItem: React.FC<NavItemProps> = ({ href, children, exact = true }) => {
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { user, isLoading, isAnonymous, signOut } = useAuth();
+  const { user, isLoading, isAnonymous, enableAnonymousMode, disableAnonymousMode, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const handleSignOut = async () => {
@@ -48,11 +48,12 @@ const Navbar = () => {
     navigate('/');
   };
 
-  // Since toggleAnonymousMode doesn't exist in the AuthContext,
-  // we'll create a placeholder function
   const handleToggleAnonymousMode = () => {
-    // This function would normally toggle anonymous mode
-    console.warn("toggleAnonymousMode function is not implemented in AuthContext");
+    if (isAnonymous) {
+      disableAnonymousMode();
+    } else {
+      enableAnonymousMode();
+    }
   };
   
   return (
@@ -197,7 +198,7 @@ const Navbar = () => {
                 className="h-auto max-h-full"
                 loading="lazy"
               />
-            </div>
+            </Link>
             <Link to="/" className="block px-3 py-2 text-base font-medium hover:bg-slate-50 rounded-md">
               Home
             </Link>
