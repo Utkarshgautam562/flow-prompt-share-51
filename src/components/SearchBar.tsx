@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, X, Globe, Lock, Eye } from 'lucide-react';
+import { Search, Filter, X, Globe, Lock, Eye, Bookmark, FileText } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +33,7 @@ export interface SearchFilters {
   useCase?: string;
   sortBy?: string;
   visibility?: string;
+  contentType?: string;
 }
 
 // Enhanced list of models
@@ -79,6 +79,13 @@ const VISIBILITY_OPTIONS = [
   "Private"
 ];
 
+// Content type options
+const CONTENT_TYPES = [
+  "All",
+  "Prompts",
+  "Collections"
+];
+
 const SearchBar: React.FC<SearchBarProps> = ({ 
   onSearch = () => {}, 
   placeholder = "Search prompts by keyword, use case, or LLM...",
@@ -91,7 +98,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
     llmModel: "All Models",
     useCase: "All Use Cases",
     sortBy: "relevance",
-    visibility: "All"
+    visibility: "All",
+    contentType: "All"
   });
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -123,6 +131,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
       newActiveFilters.push(filters.visibility);
     }
     
+    if (filters.contentType && filters.contentType !== "All") {
+      newActiveFilters.push(filters.contentType);
+    }
+    
     setActiveFilters(newActiveFilters);
   }, [filters]);
   
@@ -138,6 +150,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
       setFilters(prev => ({ ...prev, useCase: "All Use Cases" }));
     } else if (VISIBILITY_OPTIONS.includes(filter)) {
       setFilters(prev => ({ ...prev, visibility: "All" }));
+    } else if (CONTENT_TYPES.includes(filter)) {
+      setFilters(prev => ({ ...prev, contentType: "All" }));
     }
     
     onSearch(query, {
@@ -145,6 +159,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       llmModel: LLM_MODELS.includes(filter) ? "All Models" : filters.llmModel,
       useCase: USE_CASES.includes(filter) ? "All Use Cases" : filters.useCase,
       visibility: VISIBILITY_OPTIONS.includes(filter) ? "All" : filters.visibility,
+      contentType: CONTENT_TYPES.includes(filter) ? "All" : filters.contentType,
     });
   };
 
@@ -152,6 +167,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
     if (visibility === "Public") return <Globe size={14} className="mr-2" />;
     if (visibility === "Private") return <Lock size={14} className="mr-2" />;
     return <Eye size={14} className="mr-2" />;
+  };
+
+  const renderContentTypeIcon = (contentType: string) => {
+    if (contentType === "Prompts") return <FileText size={14} className="mr-2" />;
+    if (contentType === "Collections") return <Bookmark size={14} className="mr-2" />;
+    return null;
   };
   
   return (
@@ -175,6 +196,28 @@ const SearchBar: React.FC<SearchBarProps> = ({
             </CollapsibleTrigger>
             <CollapsibleContent className="absolute right-0 top-10 z-50 mt-2 min-w-[240px] rounded-md border bg-white p-4 shadow-md">
               <div className="space-y-4">
+                <div>
+                  <h4 className="mb-2 text-sm font-medium">Content Type</h4>
+                  <Select 
+                    value={filters.contentType} 
+                    onValueChange={(value) => setFilters({ ...filters, contentType: value })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select content type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CONTENT_TYPES.map((contentType) => (
+                        <SelectItem key={contentType} value={contentType}>
+                          <div className="flex items-center">
+                            {renderContentTypeIcon(contentType)}
+                            {contentType}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
                 <div>
                   <h4 className="mb-2 text-sm font-medium">LLM Model</h4>
                   <Select 

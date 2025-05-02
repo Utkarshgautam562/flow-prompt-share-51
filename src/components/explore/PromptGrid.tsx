@@ -33,6 +33,7 @@ const PromptGrid: React.FC<PromptGridProps> = ({ prompts, isLoading }) => {
             upvotes={0} // This would come from likes count in a real implementation
             author={prompt.profiles?.username || 'Anonymous'}
             createdAt={prompt.created_at}
+            isPublic={prompt.is_public}
           />
         ))}
       </div>
