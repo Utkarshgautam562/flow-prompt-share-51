@@ -85,11 +85,12 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
         // Process collections data with proper type assertion
         collections = collectionsData ? collectionsData.map(item => {
           // Handle the profiles data correctly
-          let profileData = null;
-          // Ensure item.profiles exists before checking properties on it
-          if (item.profiles && typeof item.profiles === 'object' && item.profiles !== null && !('error' in item.profiles)) {
-            profileData = item.profiles;
-          }
+          const profileData = item.profiles && 
+                             typeof item.profiles === 'object' && 
+                             item.profiles !== null && 
+                             !('error' in item.profiles) 
+                             ? item.profiles 
+                             : null;
           
           return {
             ...item,
@@ -182,12 +183,13 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
             }
           }
 
-          // Handle the profiles data correctly
-          let profileData = null;
-          // Ensure item.profiles exists before checking properties on it
-          if (item.profiles && typeof item.profiles === 'object' && item.profiles !== null && !('error' in item.profiles)) {
-            profileData = item.profiles;
-          }
+          // Handle the profiles data correctly - using ternary for cleaner code
+          const profileData = item.profiles && 
+                             typeof item.profiles === 'object' && 
+                             item.profiles !== null && 
+                             !('error' in item.profiles) 
+                             ? item.profiles 
+                             : null;
 
           return {
             id: item.id,
