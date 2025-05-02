@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -73,11 +72,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string, options?: { username?: string }) => {
+    // Keep the username short to avoid database error
     let userData = {};
     
     if (options?.username) {
+      // Ensure username is not too long (Supabase profiles column limitation)
+      const safeUsername = options.username.substring(0, 20);
       userData = {
-        username: options.username
+        username: safeUsername
       };
     }
     

@@ -24,6 +24,7 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [usernameError, setUsernameError] = useState('');
   
   // Get the redirect path from location state or default to home
   const from = location.state?.from || '/';
@@ -34,6 +35,19 @@ const Auth = () => {
       navigate(from);
     }
   }, [user, navigate, from]);
+
+  const validateUsername = (value: string) => {
+    if (value.length > 20) {
+      setUsernameError('Username must be less than 20 characters');
+      return false;
+    }
+    if (/[^a-zA-Z0-9_]/.test(value)) {
+      setUsernameError('Username can only contain letters, numbers, and underscores');
+      return false;
+    }
+    setUsernameError('');
+    return true;
+  };
   
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,10 +82,14 @@ const Auth = () => {
       toast.error('Passwords do not match');
       return;
     }
+
+    if (username && !validateUsername(username)) {
+      return; // Error is already set by validateUsername
+    }
     
     try {
       setIsLoading(true);
-      await signUp(email, password, { username });
+      await signUp(email, password, { username: username || undefined });
       toast.success('Account created successfully! Check your email for confirmation');
       setActiveTab("signin");
     } catch (error: any) {
@@ -159,9 +177,19 @@ const Auth = () => {
                         type="text" 
                         placeholder="johndoe"
                         value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        onChange={(e) => {
+                          setUsername(e.target.value);
+                          validateUsername(e.target.value);
+                        }}
                         disabled={isLoading}
+                        maxLength={20}
                       />
+                      {usernameError && (
+                        <p className="text-xs text-red-500">{usernameError}</p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        Username must be less than 20 characters and can only contain letters, numbers, and underscores.
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-email">Email</Label>
@@ -220,6 +248,9 @@ const Auth = () => {
                 <a href="/terms" className="text-blue-600 hover:underline"> Terms of Service </a> 
                 and 
                 <a href="/privacy" className="text-blue-600 hover:underline"> Privacy Policy</a>.
+              </p>
+              <p className="mt-2">
+                For support, contact us at <a href="mailto:promptnexis@gmail.com" className="text-blue-600 hover:underline">promptnexis@gmail.com</a>
               </p>
             </CardFooter>
           </Card>
