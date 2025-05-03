@@ -114,9 +114,6 @@ const PromptCard: React.FC<PromptCardProps> = ({
               <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100">
                 {llm}
               </Badge>
-              <Badge variant="outline" className="bg-purple-50 text-purple-700 hover:bg-purple-100">
-                {useCase}
-              </Badge>
               {createdAt && (
                 <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100 flex items-center gap-1">
                   <Calendar size={12} />

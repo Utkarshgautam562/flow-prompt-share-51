@@ -29,8 +29,8 @@ const PromptGrid: React.FC<PromptGridProps> = ({ prompts, isLoading }) => {
             title={prompt.title}
             description={prompt.content}
             llm={prompt.llm_settings?.model || 'Unknown'}
-            useCase="General" // This would come from tags in a real implementation
-            upvotes={0} // This would come from likes count in a real implementation
+            useCase=""
+            upvotes={0}
             author={prompt.profiles?.username || 'Anonymous'}
             createdAt={prompt.created_at}
             isPublic={prompt.is_public}
