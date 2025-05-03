@@ -1,4 +1,5 @@
 
+// Use the 'export' keyword properly to make Collection available
 export interface Collection {
   id: string;
   name: string;
