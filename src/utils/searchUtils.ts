@@ -155,10 +155,17 @@ export const fetchPrompts = async (
 
     const { data, error } = await promptQuery;
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    if (!data) {
+      return [];
+    }
 
     // Process prompts data
-    return (data || []).map(item => {
+    return data.map(item => {
       // Parse llm_settings if needed
       let llmSettings: { model: string; temperature?: number } = { model: 'Unknown' };
       
@@ -224,6 +231,7 @@ export const fetchPromptsAndCollections = async ({
     return [...prompts, ...collections];
   } catch (error) {
     console.error('Error fetching prompts and collections:', error);
-    throw error;
+    // Return empty array instead of throwing error to prevent UI from breaking
+    return [];
   }
 };

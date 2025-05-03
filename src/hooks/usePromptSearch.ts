@@ -7,9 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSearchFilters } from './useSearchFilters';
 import { fetchPromptsAndCollections } from '@/utils/searchUtils';
 
-// Use 'export type' for re-exporting types when isolatedModules is enabled
-export type { Collection } from '@/types/collection';
-
 export const usePromptSearch = (initialQuery: string = '', initialFilters: SearchFilters = {
   llmModel: 'All Models',
   useCase: 'All Use Cases',
