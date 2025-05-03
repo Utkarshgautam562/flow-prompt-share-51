@@ -13,12 +13,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Prompt } from '@/types/prompt';
 import { supabase } from '@/integrations/supabase/client';
-
 const Explore = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
-  
+  const {
+    user
+  } = useAuth();
+
   // Parse search parameters from URL
   const queryParams = new URLSearchParams(location.search);
   const initialQuery = queryParams.get('q') || '';
@@ -27,49 +28,45 @@ const Explore = () => {
   const initialSortBy = queryParams.get('sort') || 'relevance';
   const initialVisibility = queryParams.get('visibility') || 'All';
   const initialContentType = queryParams.get('contentType') || 'All';
-  
   const initialFilters: SearchFilters = {
     llmModel: initialModel,
     useCase: initialUseCase,
     sortBy: initialSortBy,
-    visibility: 'Public', // Force 'Public' for the Explore page
+    visibility: 'Public',
+    // Force 'Public' for the Explore page
     contentType: initialContentType
   };
-
-  const { 
+  const {
     results,
     prompts,
     collections,
-    isLoading, 
-    isError, 
-    refetch, 
-    searchQuery, 
-    filters, 
-    setSearchQuery, 
-    setFilters 
+    isLoading,
+    isError,
+    refetch,
+    searchQuery,
+    filters,
+    setSearchQuery,
+    setFilters
   } = usePromptSearch(initialQuery, initialFilters);
 
   // State to track prompt counts for collections
   const [collectionPromptCounts, setCollectionPromptCounts] = useState<Record<string, number>>({});
-  
+
   // Fetch prompt counts for collections
   useEffect(() => {
     const fetchCollectionPromptCounts = async () => {
       if (!collections || collections.length === 0) return;
-      
       const collectionsIds = collections.map(collection => collection.id);
       try {
         // First, fetch all prompt_collections records for these collection IDs
-        const { data, error } = await supabase
-          .from('prompt_collections')
-          .select('collection_id, prompt_id')
-          .in('collection_id', collectionsIds);
-          
+        const {
+          data,
+          error
+        } = await supabase.from('prompt_collections').select('collection_id, prompt_id').in('collection_id', collectionsIds);
         if (error) {
           console.error('Error fetching collection prompt counts:', error);
           return;
         }
-        
         if (data) {
           // Count the occurrences of each collection_id
           const counts: Record<string, number> = {};
@@ -82,38 +79,30 @@ const Explore = () => {
         console.error('Failed to fetch prompt counts:', err);
       }
     };
-    
     fetchCollectionPromptCounts();
   }, [collections]);
 
   // Create a page title based on search parameters
   const generatePageTitle = () => {
     const parts = [];
-    
     if (searchQuery) {
       parts.push(`"${searchQuery}"`);
     }
-    
     if (filters.contentType && filters.contentType !== 'All') {
       parts.push(filters.contentType);
     }
-    
     if (filters.llmModel && filters.llmModel !== 'All Models') {
       parts.push(filters.llmModel);
     }
-    
     if (filters.useCase && filters.useCase !== 'All Use Cases') {
       parts.push(filters.useCase);
     }
-
     if (filters.visibility && filters.visibility !== 'All') {
       parts.push(filters.visibility === 'Public' ? 'Public' : 'Private');
     }
-    
     if (parts.length > 0) {
       return `${parts.join(' | ')} - PromptNexis`;
     }
-    
     return 'Explore AI Prompts - Find the Best Prompts for Any Task | PromptNexis';
   };
 
@@ -121,30 +110,23 @@ const Explore = () => {
   const generateMetaDescription = () => {
     if (searchQuery || filters.llmModel !== 'All Models' || filters.useCase !== 'All Use Cases' || filters.visibility !== 'All' || filters.contentType !== 'All') {
       const parts = [];
-      
       if (searchQuery) {
         parts.push(`"${searchQuery}"`);
       }
-
       if (filters.contentType !== 'All') {
         parts.push(`${filters.contentType.toLowerCase()}`);
       }
-      
       if (filters.llmModel !== 'All Models') {
         parts.push(`optimized for ${filters.llmModel}`);
       }
-      
       if (filters.useCase !== 'All Use Cases') {
         parts.push(`for ${filters.useCase}`);
       }
-
       if (filters.visibility !== 'All') {
         parts.push(filters.visibility === 'Public' ? 'publicly available' : 'private to you');
       }
-      
       return `Discover high-quality AI ${filters.contentType !== 'Collections' ? 'prompts' : 'collections'} ${parts.join(' ')}. Browse, filter, and use resources from the PromptNexis community.`;
     }
-    
     return 'Explore thousands of AI prompts and collections for ChatGPT, Claude, Gemini and more. Filter by model, use case, visibility, or popularity to find the perfect resources for your needs.';
   };
 
@@ -155,10 +137,9 @@ const Explore = () => {
       ...searchFilters,
       visibility: 'Public'
     };
-    
     setSearchQuery(query);
     setFilters(exploreFilters);
-    
+
     // Update URL with search parameters
     const params = new URLSearchParams();
     if (query) params.set('q', query);
@@ -166,22 +147,20 @@ const Explore = () => {
     if (exploreFilters.llmModel !== 'All Models') params.set('model', exploreFilters.llmModel);
     if (exploreFilters.useCase !== 'All Use Cases') params.set('useCase', exploreFilters.useCase);
     if (exploreFilters.sortBy !== 'relevance') params.set('sort', exploreFilters.sortBy);
-    
-    navigate(`/explore?${params.toString()}`, { replace: true });
+    navigate(`/explore?${params.toString()}`, {
+      replace: true
+    });
   };
-
   useEffect(() => {
     // Refetch when search or filters change
     refetch();
   }, [searchQuery, filters, refetch]);
-
   if (isError) {
     toast.error('Failed to load prompts. Please try again.');
   }
-
   const renderPrompts = () => {
     if (!prompts) return [];
-    
+
     // Add isPublic property to each prompt
     return prompts.map(prompt => ({
       ...prompt,
@@ -195,9 +174,7 @@ const Explore = () => {
     if (filters.contentType === 'Prompts') return 'prompts';
     return 'all';
   };
-
-  return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+  return <div className="min-h-screen flex flex-col bg-gray-50">
       <Helmet>
         <title>{generatePageTitle()}</title>
         <meta name="description" content={generateMetaDescription()} />
@@ -213,118 +190,52 @@ const Explore = () => {
       
       <div className="container px-4 md:px-6 py-8">
         <div className="flex flex-col space-y-8">
-          <ExploreHeader 
-            title="Explore Resources"
-            description="Discover and use public prompts and collections from the community"
-          />
+          <ExploreHeader title="Explore Resources" description="Discover and use public prompts and collections from the community" />
           
-          <SearchBar 
-            onSearch={handleSearch} 
-            placeholder="Search for prompts and collections..."
-            initialQuery={searchQuery}
-            initialFilters={filters}
-            showVisibilityFilter={false} // Hide visibility filter on Explore page
-          />
+          <SearchBar onSearch={handleSearch} placeholder="Search for prompts and collections..." initialQuery={searchQuery} initialFilters={filters} showVisibilityFilter={false} // Hide visibility filter on Explore page
+        />
           
           <Tabs defaultValue={getInitialTab()} className="w-full">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-6">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="prompts">Prompts</TabsTrigger>
-              <TabsTrigger value="collections">Collections</TabsTrigger>
-            </TabsList>
+            
             
             <TabsContent value="all">
-              {isLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {[...Array(8)].map((_, i) => (
-                    <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
-                  ))}
-                </div>
-              ) : results && results.length > 0 ? (
-                <div>
-                  {collections && collections.length > 0 && (
-                    <div className="mb-8">
+              {isLoading ? <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {[...Array(8)].map((_, i) => <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>)}
+                </div> : results && results.length > 0 ? <div>
+                  {collections && collections.length > 0 && <div className="mb-8">
                       <h2 className="text-xl font-semibold mb-4">Collections</h2>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {collections.map((collection: Collection) => (
-                          <CollectionCard
-                            key={collection.id}
-                            id={collection.id}
-                            name={collection.name}
-                            description={collection.description}
-                            author={collection.profiles?.username || 'Anonymous'}
-                            createdAt={collection.created_at}
-                            isShared={collection.is_shared || false}
-                            promptCount={collectionPromptCounts[collection.id] || 0}
-                          />
-                        ))}
+                        {collections.map((collection: Collection) => <CollectionCard key={collection.id} id={collection.id} name={collection.name} description={collection.description} author={collection.profiles?.username || 'Anonymous'} createdAt={collection.created_at} isShared={collection.is_shared || false} promptCount={collectionPromptCounts[collection.id] || 0} />)}
                       </div>
-                    </div>
-                  )}
+                    </div>}
                   
-                  {prompts && prompts.length > 0 && (
-                    <div>
+                  {prompts && prompts.length > 0 && <div>
                       <h2 className="text-xl font-semibold mb-4">Prompts</h2>
-                      <PromptGrid 
-                        prompts={renderPrompts()} 
-                        isLoading={false} 
-                        hideVisibilityBadge={true}
-                        hideShareButton={true}
-                      />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-12">
+                      <PromptGrid prompts={renderPrompts()} isLoading={false} hideVisibilityBadge={true} hideShareButton={true} />
+                    </div>}
+                </div> : <div className="text-center py-12">
                   <p className="text-lg text-gray-500">No results found matching your criteria.</p>
                   <p className="text-sm text-gray-400 mt-2">Try adjusting your search or filters.</p>
-                </div>
-              )}
+                </div>}
             </TabsContent>
             
             <TabsContent value="prompts">
-              <PromptGrid 
-                prompts={renderPrompts()} 
-                isLoading={isLoading} 
-                hideVisibilityBadge={true}
-                hideShareButton={true}
-              />
+              <PromptGrid prompts={renderPrompts()} isLoading={isLoading} hideVisibilityBadge={true} hideShareButton={true} />
             </TabsContent>
             
             <TabsContent value="collections">
-              {isLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
-                  ))}
-                </div>
-              ) : collections && collections.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
-                  {collections.map((collection: Collection) => (
-                    <CollectionCard
-                      key={collection.id}
-                      id={collection.id}
-                      name={collection.name}
-                      description={collection.description}
-                      author={collection.profiles?.username || 'Anonymous'}
-                      createdAt={collection.created_at}
-                      isShared={collection.is_shared || false}
-                      promptCount={collectionPromptCounts[collection.id] || 0}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
+              {isLoading ? <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {[...Array(4)].map((_, i) => <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>)}
+                </div> : collections && collections.length > 0 ? <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+                  {collections.map((collection: Collection) => <CollectionCard key={collection.id} id={collection.id} name={collection.name} description={collection.description} author={collection.profiles?.username || 'Anonymous'} createdAt={collection.created_at} isShared={collection.is_shared || false} promptCount={collectionPromptCounts[collection.id] || 0} />)}
+                </div> : <div className="text-center py-12">
                   <p className="text-lg text-gray-500">No collections found matching your criteria.</p>
                   <p className="text-sm text-gray-400 mt-2">Try adjusting your search or filters.</p>
-                </div>
-              )}
+                </div>}
             </TabsContent>
           </Tabs>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Explore;
