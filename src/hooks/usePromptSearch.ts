@@ -6,6 +6,7 @@ import { SearchFilters } from '@/components/SearchBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchFilters } from './useSearchFilters';
 import { fetchPromptsAndCollections } from '@/utils/searchUtils';
+import { useLocation } from 'react-router-dom';
 
 export const usePromptSearch = (initialQuery: string = '', initialFilters: SearchFilters = {
   llmModel: 'All Models',
@@ -14,15 +15,28 @@ export const usePromptSearch = (initialQuery: string = '', initialFilters: Searc
   visibility: 'All',
   contentType: 'All'
 }) => {
-  const { searchQuery, filters, setSearchQuery, setFilters } = useSearchFilters(initialQuery, initialFilters);
+  const location = useLocation();
+  const isExplorePage = location.pathname === '/explore';
+  
+  // Force 'Public' visibility on the explore page
+  const adjustedInitialFilters = {
+    ...initialFilters,
+    visibility: isExplorePage ? 'Public' : initialFilters.visibility
+  };
+
+  const { searchQuery, filters, setSearchQuery, setFilters } = useSearchFilters(initialQuery, adjustedInitialFilters);
   const { user } = useAuth();
 
   // Use React Query to handle the data fetching with improved caching strategy
   const { data: results, isLoading, isError, refetch } = useQuery({
-    queryKey: ['prompts-collections', searchQuery, filters, user?.id],
+    queryKey: ['prompts-collections', searchQuery, filters, user?.id, isExplorePage],
     queryFn: () => fetchPromptsAndCollections({ 
       query: searchQuery, 
-      filters,
+      filters: {
+        ...filters,
+        // Ensure visibility is always 'Public' on the explore page
+        visibility: isExplorePage ? 'Public' : filters.visibility
+      },
       userId: user?.id 
     }),
     staleTime: 300000, // 5 minutes for better caching

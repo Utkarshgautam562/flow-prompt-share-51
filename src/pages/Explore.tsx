@@ -32,7 +32,7 @@ const Explore = () => {
     llmModel: initialModel,
     useCase: initialUseCase,
     sortBy: initialSortBy,
-    visibility: initialVisibility,
+    visibility: 'Public', // Force 'Public' for the Explore page
     contentType: initialContentType
   };
 
@@ -150,17 +150,22 @@ const Explore = () => {
 
   // Handle search
   const handleSearch = (query: string, searchFilters: SearchFilters) => {
+    // Always enforce 'Public' visibility on the Explore page
+    const exploreFilters = {
+      ...searchFilters,
+      visibility: 'Public'
+    };
+    
     setSearchQuery(query);
-    setFilters(searchFilters);
+    setFilters(exploreFilters);
     
     // Update URL with search parameters
     const params = new URLSearchParams();
     if (query) params.set('q', query);
-    if (searchFilters.contentType !== 'All') params.set('contentType', searchFilters.contentType);
-    if (searchFilters.llmModel !== 'All Models') params.set('model', searchFilters.llmModel);
-    if (searchFilters.useCase !== 'All Use Cases') params.set('useCase', searchFilters.useCase);
-    if (searchFilters.sortBy !== 'relevance') params.set('sort', searchFilters.sortBy);
-    if (searchFilters.visibility !== 'All') params.set('visibility', searchFilters.visibility);
+    if (exploreFilters.contentType !== 'All') params.set('contentType', exploreFilters.contentType);
+    if (exploreFilters.llmModel !== 'All Models') params.set('model', exploreFilters.llmModel);
+    if (exploreFilters.useCase !== 'All Use Cases') params.set('useCase', exploreFilters.useCase);
+    if (exploreFilters.sortBy !== 'relevance') params.set('sort', exploreFilters.sortBy);
     
     navigate(`/explore?${params.toString()}`, { replace: true });
   };
@@ -218,7 +223,7 @@ const Explore = () => {
             placeholder="Search for prompts and collections..."
             initialQuery={searchQuery}
             initialFilters={filters}
-            showVisibilityFilter={!!user} // Only show visibility filter for logged in users
+            showVisibilityFilter={false} // Hide visibility filter on Explore page
           />
           
           <Tabs defaultValue={getInitialTab()} className="w-full">

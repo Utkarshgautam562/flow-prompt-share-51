@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Prompt } from '@/types/prompt';
 import { Collection } from '@/types/collection';
@@ -34,19 +33,24 @@ export const fetchCollections = async (
       .from('collections')
       .select('*, profiles:user_id(username)');
 
-    // Apply visibility filter for collections
-    if (filters.visibility === 'Public') {
+    // For Explore page, we only want to show public collections, regardless of visibility filter
+    if (window.location.pathname === '/explore') {
       collectionsQuery = collectionsQuery.eq('is_shared', true);
-    } else if (filters.visibility === 'Private') {
-      // For private collections, ensure user is authenticated and only show their private collections
-      if (!userId) return []; // Return empty array if user is not authenticated
-      collectionsQuery = collectionsQuery.eq('is_shared', false).eq('user_id', userId);
     } else {
-      // For 'All', show public collections and user's private collections if authenticated
-      if (userId) {
-        collectionsQuery = collectionsQuery.or(`is_shared.eq.true,user_id.eq.${userId}`);
-      } else {
+      // Apply visibility filter for collections
+      if (filters.visibility === 'Public') {
         collectionsQuery = collectionsQuery.eq('is_shared', true);
+      } else if (filters.visibility === 'Private') {
+        // For private collections, ensure user is authenticated and only show their private collections
+        if (!userId) return []; // Return empty array if user is not authenticated
+        collectionsQuery = collectionsQuery.eq('is_shared', false).eq('user_id', userId);
+      } else {
+        // For 'All', show public collections and user's private collections if authenticated
+        if (userId) {
+          collectionsQuery = collectionsQuery.or(`is_shared.eq.true,user_id.eq.${userId}`);
+        } else {
+          collectionsQuery = collectionsQuery.eq('is_shared', true);
+        }
       }
     }
 
@@ -106,19 +110,24 @@ export const fetchPrompts = async (
       .from('prompts')
       .select('*, profiles:user_id(username)');
 
-    // Apply visibility filter for prompts
-    if (filters.visibility === 'Public') {
+    // For Explore page, we only want to show public prompts
+    if (window.location.pathname === '/explore') {
       promptQuery = promptQuery.eq('is_public', true);
-    } else if (filters.visibility === 'Private') {
-      // For private prompts, ensure user is authenticated and only show their private prompts
-      if (!userId) return []; // Return empty array if user is not authenticated
-      promptQuery = promptQuery.eq('is_public', false).eq('user_id', userId);
     } else {
-      // For 'All', show public prompts and user's private prompts if authenticated
-      if (userId) {
-        promptQuery = promptQuery.or(`is_public.eq.true,user_id.eq.${userId}`);
-      } else {
+      // Apply visibility filter for prompts
+      if (filters.visibility === 'Public') {
         promptQuery = promptQuery.eq('is_public', true);
+      } else if (filters.visibility === 'Private') {
+        // For private prompts, ensure user is authenticated and only show their private prompts
+        if (!userId) return []; // Return empty array if user is not authenticated
+        promptQuery = promptQuery.eq('is_public', false).eq('user_id', userId);
+      } else {
+        // For 'All', show public prompts and user's private prompts if authenticated
+        if (userId) {
+          promptQuery = promptQuery.or(`is_public.eq.true,user_id.eq.${userId}`);
+        } else {
+          promptQuery = promptQuery.eq('is_public', true);
+        }
       }
     }
 
