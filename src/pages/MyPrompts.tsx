@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -225,6 +224,8 @@ const MyPrompts = () => {
                     upvotes={0}
                     author="You"
                     showViewButton={true}
+                    isPublic={prompt.is_public}
+                    createdAt={prompt.created_at}
                   />
                 ))}
               </div>
