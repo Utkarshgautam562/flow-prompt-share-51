@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -261,7 +260,12 @@ const Explore = () => {
                   {prompts && prompts.length > 0 && (
                     <div>
                       <h2 className="text-xl font-semibold mb-4">Prompts</h2>
-                      <PromptGrid prompts={renderPrompts()} isLoading={false} />
+                      <PromptGrid 
+                        prompts={renderPrompts()} 
+                        isLoading={false} 
+                        hideVisibilityBadge={true}
+                        hideShareButton={true}
+                      />
                     </div>
                   )}
                 </div>
@@ -274,7 +278,12 @@ const Explore = () => {
             </TabsContent>
             
             <TabsContent value="prompts">
-              <PromptGrid prompts={renderPrompts()} isLoading={isLoading} />
+              <PromptGrid 
+                prompts={renderPrompts()} 
+                isLoading={isLoading} 
+                hideVisibilityBadge={true}
+                hideShareButton={true}
+              />
             </TabsContent>
             
             <TabsContent value="collections">

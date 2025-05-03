@@ -6,9 +6,16 @@ import { Prompt } from '@/types/prompt';
 interface PromptGridProps {
   prompts: Prompt[] | undefined;
   isLoading: boolean;
+  hideVisibilityBadge?: boolean;
+  hideShareButton?: boolean;
 }
 
-const PromptGrid: React.FC<PromptGridProps> = ({ prompts, isLoading }) => {
+const PromptGrid: React.FC<PromptGridProps> = ({ 
+  prompts, 
+  isLoading, 
+  hideVisibilityBadge = false,
+  hideShareButton = false 
+}) => {
   // Memoize prompt cards for better performance
   const renderPrompts = useCallback(() => {
     if (!prompts || prompts.length === 0) {
@@ -34,11 +41,13 @@ const PromptGrid: React.FC<PromptGridProps> = ({ prompts, isLoading }) => {
             author={prompt.profiles?.username || 'Anonymous'}
             createdAt={prompt.created_at}
             isPublic={prompt.is_public}
+            hideVisibilityBadge={hideVisibilityBadge}
+            hideShareButton={hideShareButton}
           />
         ))}
       </div>
     );
-  }, [prompts]);
+  }, [prompts, hideVisibilityBadge, hideShareButton]);
 
   if (isLoading) {
     return (

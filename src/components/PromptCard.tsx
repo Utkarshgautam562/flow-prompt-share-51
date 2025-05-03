@@ -27,6 +27,8 @@ interface PromptCardProps {
   showViewButton?: boolean;
   createdAt?: string;
   isPublic?: boolean;
+  hideVisibilityBadge?: boolean;
+  hideShareButton?: boolean;
 }
 
 const PromptCard: React.FC<PromptCardProps> = ({ 
@@ -39,7 +41,9 @@ const PromptCard: React.FC<PromptCardProps> = ({
   author,
   showViewButton = false,
   createdAt,
-  isPublic = false
+  isPublic = false,
+  hideVisibilityBadge = false,
+  hideShareButton = false
 }) => {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
@@ -102,13 +106,15 @@ const PromptCard: React.FC<PromptCardProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <CardTitle className="text-lg font-bold">{title}</CardTitle>
-              <Badge 
-                variant={isPublic ? "default" : "secondary"} 
-                className={`flex items-center gap-1 ${isPublic ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              >
-                {isPublic ? <Globe size={12} /> : <Lock size={12} />}
-                <span className="text-xs">{isPublic ? 'Public' : 'Private'}</span>
-              </Badge>
+              {!hideVisibilityBadge && (
+                <Badge 
+                  variant={isPublic ? "default" : "secondary"} 
+                  className={`flex items-center gap-1 ${isPublic ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                >
+                  {isPublic ? <Globe size={12} /> : <Lock size={12} />}
+                  <span className="text-xs">{isPublic ? 'Public' : 'Private'}</span>
+                </Badge>
+              )}
             </div>
             <div className="flex flex-wrap gap-1 mb-2">
               <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100">
@@ -142,15 +148,17 @@ const PromptCard: React.FC<PromptCardProps> = ({
         <div className="flex items-center gap-2">
           {showViewButton ? (
             <>
-              <Button 
-                onClick={handleShareClick}
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0"
-              >
-                <Copy size={16} />
-                <span className="sr-only">Copy Link</span>
-              </Button>
+              {!hideShareButton && (
+                <Button 
+                  onClick={handleShareClick}
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0"
+                >
+                  <Copy size={16} />
+                  <span className="sr-only">Copy Link</span>
+                </Button>
+              )}
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -175,15 +183,17 @@ const PromptCard: React.FC<PromptCardProps> = ({
                 <Heart size={14} className={`${isLiked ? "fill-pink-600" : ""}`} />
                 <span>{likesCount}</span>
               </Button>
-              <Button 
-                onClick={handleShareClick}
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0"
-              >
-                <Copy size={16} />
-                <span className="sr-only">Copy Link</span>
-              </Button>
+              {!hideShareButton && (
+                <Button 
+                  onClick={handleShareClick}
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0"
+                >
+                  <Copy size={16} />
+                  <span className="sr-only">Copy Link</span>
+                </Button>
+              )}
             </>
           )}
         </div>
